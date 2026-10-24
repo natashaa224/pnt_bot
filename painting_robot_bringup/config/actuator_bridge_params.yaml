@@ -1,0 +1,44 @@
+actuator_bridge_node:
+  ros__parameters:
+    hardware_backend: sbc
+    # serial
+    serial_port: /dev/ttyACM0
+    serial_baud: 115200
+    # Z axis motor
+    z_slave_id: 1
+    z_counts_per_rev: 10000     # motor-shaft counts/rev (for m/s→rpm conversion)
+
+    z_max_m: 1.2                # sim / real hardware limit
+    strip_z_max: 1.2
+
+    # Leadshine drive profile
+        # ── Z axis (gantry) ──────────────────────────────────────────
+    z_counts_per_mm:    576.03     
+    z_gear_ratio:       30.0       # kept for future linear-accel / rpm math; not used in counts (jog already folds it in)
+    z_travel_rpm:       400
+
+    # direction-split ramps (ms per 1000 rpm, motor-shaft side, pre-gearbox)
+    # DOWN-decel is safety-critical: brakes a gravity-assisted descent. Keep it firm (small).
+    z_accel_up_ms:      150        # accel while ascending (fighting gravity — gentle)
+    z_decel_up_ms:      120        # decel while ascending (gravity assists the stop)
+    z_accel_down_ms:    180        # accel while descending (gravity assists — hold it back, larger=gentler)
+    z_decel_down_ms:    100        # decel while descending (fighting gravity — firm stop)  
+    z_paint_speed_mps: 0.6      # paint stroke speed (→ ~2074 rpm)
+
+
+    # solenoid
+    solenoid_gpio_pin: 23
+
+    # Base drive motors
+    base_left_id: 2
+    base_right_id: 3
+    wheel_dia_m: 0.203 #8inches
+    track_width_m: 0.625 #
+    base_gear_ratio: 20.0
+    base_counts_per_rev: 10000
+    zero_encoders_on_start: true
+    base_accel_ms:      120        # symmetric — base is gravity-neutral
+    base_decel_ms:      120
+    # Odom frames
+    odom_frame_id: odom
+    base_frame_id: base_link

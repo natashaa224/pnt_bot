@@ -1,0 +1,757 @@
+<?xml version="1.0" ?>
+<!--
+  office_clean_v1.world
+  Room: 10m x 10m footprint, 2.5m walls
+  Centre of room: (0, 0)
+  Walls:
+    wall_back  : y = +5.075 (outer face), faces -Y into room
+    wall_front : y = -5.075 (outer face), faces +Y into room
+    wall_right : x = +5.075 (outer face), faces -X into room
+    wall_left  : x = -5.075 (outer face), faces +X into room
+  Wall thickness: 0.15m
+  Inner face of each wall is at ±5.0m
+
+  Windows (4 total, one per wall):
+    W1: Left wall   (x=-5),  y=+2.0  — rot=0   (recess goes +X into room)
+    W2: Left wall   (x=-5),  y=-2.0  — rot=0
+    W3: Right wall  (x=+5),  y=0.0   — rot=pi  (recess goes -X into room)
+    W4: Back wall   (y=+5),  x=-2.0  — rot=-pi/2 (recess goes -Y into room)
+
+  Wait — simpler approach: build every window/door as a self-contained model
+  whose LOCAL +X axis = inward direction for that wall.
+
+  Convention used throughout this file:
+    - Each wall model is NOT rotated; instead its link visuals are placed in world coords.
+    - Windows and doors are standalone models.
+    - Window local frame: glass at local x=0, recess extends to local x=+0.3 (INTO wall).
+      So window must be placed with local +X pointing INTO the wall.
+      Left wall  inner face x=-5.0 → window at x=-5.075, rot=pi   (local+X → world-X, i.e. into wall)
+      Right wall inner face x=+5.0 → window at x=+5.075, rot=0    (local+X → world+X, i.e. into wall)
+      Back wall  inner face y=+5.0 → window at y=+5.075, rot=pi/2 (local+X → world+Y, i.e. into wall)
+      Front wall inner face y=-5.0 → window at y=-5.075, rot=-pi/2(local+X → world-Y, i.e. into wall)
+-->
+<sdf version='1.6'>
+  <world name='clean_office'>
+
+    <!-- ====== PHYSICS & SCENE ====== -->
+    <gravity>0 0 -9.8</gravity>
+    <physics name='default_physics' default='0' type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.5 0.5 0.5 1</ambient>
+      <background>0.6 0.6 0.6 1</background>
+      <shadows>1</shadows>
+    </scene>
+
+    <!-- ====== GROUND PLANE ====== -->
+    <model name='ground_plane'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+        </collision>
+        <visual name='visual'>
+          <cast_shadows>0</cast_shadows>
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material><script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Grey</name>
+          </script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ====== CARPET FLOOR ====== -->
+    <model name='office_floor'>
+      <static>1</static>
+      <pose>0 0 0.005 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><box><size>15 15 0.01</size></box></geometry>
+        </collision>
+        <visual name='visual'>
+          <geometry><box><size>15 15 0.01</size></box></geometry>
+          <material>
+            <ambient>0.62 0.60 0.57 1</ambient>
+            <diffuse>0.62 0.60 0.57 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+    ================================================================
+      WALLS
+      Unpainted concrete: ambient/diffuse 0.82 0.80 0.76 1
+      All 4 walls are simple models with box visuals.
+      Each wall has openings cut by splitting into segments.
+
+      Room inner boundary: x in [-5, +5], y in [-5, +5]
+      Wall thickness: 0.15m
+      Wall height: 2.5m
+
+      WALL LAYOUT (world coords, wall centre-plane):
+        wall_back  centred at y=+5.075, runs x: -5..+5  (10m long)
+        wall_front centred at y=-5.075, runs x: -5..+5
+        wall_right centred at x=+5.075, runs y: -5..+5
+        wall_left  centred at x=-5.075, runs y: -5..+5
+
+      Window openings: 1.0m wide x 1.0m tall, sill at z=0.9 (top at z=1.9)
+      Door openings:   1.0m wide x 2.1m tall, from z=0 to z=2.1
+
+      Walls are NOT rotated — all visuals placed in world frame directly.
+    ================================================================
+    -->
+
+    <!-- ============================================================
+         BACK WALL  (y=+5.075)
+         Has: DOOR at x=+2.0 (1m wide gap, x=1.5..2.5)
+              WINDOW at x=-2.0 (1m wide gap, x=-2.5..-1.5)
+         Segments along X (wall runs x=-5..+5, total 10m):
+           seg A: x=-5.0 to x=-2.5   w=2.5  cx=-3.75
+           seg B: x=-2.5 to x=-1.5   WINDOW GAP (skip solid, leave open)
+               bottom strip z=0..0.9  h=0.9
+               top strip    z=1.9..2.5 h=0.6
+           seg C: x=-1.5 to x=+1.5   w=3.0  cx=0
+           seg D: x=+1.5 to x=+2.5   DOOR GAP (skip solid below 2.1)
+               top strip    z=2.1..2.5 h=0.4
+           seg E: x=+2.5 to x=+5.0   w=2.5  cx=+3.75
+    ============================================================ -->
+    <model name='wall_back'>
+      <static>1</static>
+      <pose>0 7.575 0 0 0 0</pose>
+      <link name='link'>
+        <!-- Segment A: solid left -->
+        <visual name='vA'><pose>-5.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.89 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cA'><pose>-5.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.89 0.15 3.0</size></box></geometry></collision>
+
+        <!-- Segment B-bottom: below window gap -->
+        <visual name='vBb'><pose>-2.0 0 0.433 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.866</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBb'><pose>-2.0 0 0.433 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.866</size></box></geometry></collision>
+
+        <!-- Segment B-top: above window gap -->
+        <visual name='vBt'><pose>-2.0 0 2.543 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.914</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBt'><pose>-2.0 0 2.543 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.914</size></box></geometry></collision>
+
+        <!-- Segment C: solid middle -->
+        <visual name='vC'><pose>0.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>2.89 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cC'><pose>0.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>2.89 0.15 3.0</size></box></geometry></collision>
+
+        <!-- Segment D-top: above door gap -->
+        <visual name='vDt'><pose>2.0 0 2.55 0 0 0</pose>
+          <geometry><box><size>1.0 0.15 0.9</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cDt'><pose>2.0 0 2.55 0 0 0</pose>
+          <geometry><box><size>1.0 0.15 0.9</size></box></geometry></collision>
+
+        <!-- Segment E: solid right -->
+        <visual name='vE'><pose>5.0 0 1.5 0 0 0</pose>
+          <geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cE'><pose>5.0 0 1.5 0 0 0</pose>
+          <geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+      </link>
+    </model>
+
+    <!-- ============================================================
+         FRONT WALL  (y=-5.075)
+         Has: DOOR at x=-2.0 (1m wide gap, x=-2.5..-1.5)
+              WINDOW at x=+2.0 (1m wide gap, x=+1.5..+2.5)
+         Segments: same pattern mirrored
+    ============================================================ -->
+    <model name='wall_front'>
+      <static>1</static>
+      <pose>0 -7.575 0 0 0 0</pose>
+      <link name='link'>
+        <!-- Segment A: solid left  x=-5..-2.5  cx=-3.75 -->
+        <visual name='vA'><pose>-5.0 0 1.5 0 0 0</pose>
+          <geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cA'><pose>-5.0 0 1.5 0 0 0</pose>
+          <geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+
+        <!-- Door gap at x=-2.5..-1.5 : top only -->
+        <visual name='vDt'><pose>-2.0 0 2.55 0 0 0</pose>
+          <geometry><box><size>1.0 0.15 0.9</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cDt'><pose>-2.0 0 2.55 0 0 0</pose>
+          <geometry><box><size>1.0 0.15 0.9</size></box></geometry></collision>
+
+        <!-- Segment C: solid middle x=-1.5..+1.5 cx=0 -->
+        <visual name='vC'><pose>-0.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>2.89 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cC'><pose>-0.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>2.89 0.15 3.0</size></box></geometry></collision>
+
+        <!-- Window gap at x=+1.5..+2.5 : bottom + top -->
+        <visual name='vBb'><pose>2.0 0 0.433 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.866</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBb'><pose>2.0 0 0.433 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.866</size></box></geometry></collision>
+
+        <visual name='vBt'><pose>2.0 0 2.543 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.914</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBt'><pose>2.0 0 2.543 0 0 0</pose>
+          <geometry><box><size>1.22 0.15 0.914</size></box></geometry></collision>
+
+        <!-- Segment E: solid right x=+2.5..+5 cx=+3.75 -->
+        <visual name='vE'><pose>5.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.89 0.15 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cE'><pose>5.055 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.89 0.15 3.0</size></box></geometry></collision>
+      </link>
+    </model>
+
+    <!-- ============================================================
+         RIGHT WALL  (x=+5.075)
+         Has: WINDOW at y=0 (1m wide gap)
+         Wall runs y=-5..+5 (10m).
+         Segments along Y:
+           seg A: y=-5..-0.5  w=4.5  cy=-2.75
+           seg B: y=-0.5..+0.5 WINDOW GAP (bottom+top)
+           seg C: y=+0.5..+5   w=4.5  cy=+2.75
+    ============================================================ -->
+    <model name='wall_right'>
+      <static>1</static>
+      <pose>7.575 0 0 0 0 0</pose>
+      <link name='link'>
+        <!-- Segment A -->
+        <visual name='vA'><pose>0 -4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cA'><pose>0 -4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry></collision>
+
+        <!-- Window gap bottom strip -->
+        <visual name='vBb'><pose>0 0 0.433 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.866</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBb'><pose>0 0 0.433 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.866</size></box></geometry></collision>
+
+        <!-- Window gap top strip -->
+        <visual name='vBt'><pose>0 0 2.543 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.914</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBt'><pose>0 0 2.543 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.914</size></box></geometry></collision>
+
+        <!-- Segment C -->
+        <visual name='vC'><pose>0 4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cC'><pose>0 4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry></collision>
+      </link>
+    </model>
+
+    <!-- ============================================================
+         LEFT WALL  (x=-5.075)
+         Has: WINDOW at y=0 (1m wide gap)
+         Same structure as right wall, mirrored
+    ============================================================ -->
+    <model name='wall_left'>
+      <static>1</static>
+      <pose>-7.575 0 0 0 0 0</pose>
+      <link name='link'>
+        <visual name='vA'><pose>0 -4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cA'><pose>0 -4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry></collision>
+
+        <visual name='vBb'><pose>0 0 0.433 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.866</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBb'><pose>0 0 0.433 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.866</size></box></geometry></collision>
+
+        <visual name='vBt'><pose>0 0 2.543 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.914</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cBt'><pose>0 0 2.543 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 0.914</size></box></geometry></collision>
+
+        <visual name='vC'><pose>0 4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry>
+          <material>
+            <ambient>0.78 0.76 0.72 1</ambient>
+            <diffuse>0.78 0.76 0.72 1</diffuse>
+            <specular>0.02 0.02 0.02 1</specular>
+          </material>
+        </visual>
+        <collision name='cC'><pose>0 4.055 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 6.89 3.0</size></box></geometry></collision>
+      </link>
+    </model>
+
+    <!--
+    ================================================================
+      WINDOWS (4 total)
+      Each window is a standalone model.
+      The window "recess" box sits BETWEEN outer and inner wall face.
+      Outer wall face: at the wall model pose ± 0.075
+      Inner wall face: at ± 5.0
+
+      Window local frame convention:
+        - The window sits flush with the INNER wall face.
+        - All recess/sill parts use ONLY local Z and Y offsets (no X offset needed).
+        - The glass plane is at local x=0 (at inner wall face).
+        - Sill, frame etc. are also at x=0 or slightly positive (into room) for visibility.
+        - The wall opening is 1m wide x 1m tall (z=0.9..1.9).
+
+      Simpler approach: Window is a flat-ish assembly sitting in the wall gap.
+      Glass at the inner face, wooden frame visible from inside.
+      No deep recess needed — just frame + glass + sill.
+
+      ROTATION RULES (window local +X faces INTO the room):
+        Left wall  (x=-5.075): window at x=-5.0, rot=0    (local+X = world+X = into room) ✓
+        Right wall (x=+5.075): window at x=+5.0, rot=pi   (local+X = world-X = into room) ✓
+        Back wall  (y=+5.075): window at y=+5.0, rot=-pi/2 (local+X = world-Y = into room) ✓
+        Front wall (y=-5.075): window at y=-5.0, rot=+pi/2 (local+X = world+Y = into room) ✓
+    ================================================================
+    -->
+
+    <!-- ── WINDOW 1: Left wall, y=0 ── -->
+    <!-- Left wall inner face: x=-5.0. Window faces +X (into room). rot=0 -->
+    <model name='window_1'>
+      <static>1</static>
+      <pose>-7.5 0 0 0 0 0</pose>
+      <link name='link'>
+        <!-- outer frame top -->
+        <visual name='ft'><pose>0 0 2.116 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <!-- outer frame bottom / sill -->
+        <visual name='fb'><pose>0 0 0.836 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <!-- outer frame left -->
+        <visual name='fl'><pose>0 -0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <!-- outer frame right -->
+        <visual name='fr'><pose>0 0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <!-- glass -->
+        <visual name='glass'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.02 1.16 1.16</size></box></geometry>
+          <material>
+            <ambient>0.55 0.72 0.88 0.35</ambient>
+            <diffuse>0.55 0.72 0.88 0.35</diffuse>
+            <specular>0.95 0.95 0.95 1</specular>
+            <emissive>0.02 0.05 0.08 0</emissive>
+          </material>
+          <transparency>0.5</transparency>
+        </visual>
+        <!-- muntin horizontal -->
+        <visual name='mh'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 1.16 0.03</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <!-- muntin vertical -->
+        <visual name='mv'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 0.03 1.16</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <collision name='col'><pose>0 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 1.22</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- ── WINDOW 2: Right wall, y=0 ── -->
+    <!-- Right wall inner face: x=+5.0. Window faces -X (into room). rot=pi -->
+    <model name='window_2'>
+      <static>1</static>
+      <pose>7.5 0 0 0 0 3.14159</pose>
+      <link name='link'>
+        <visual name='ft'><pose>0 0 2.116 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fb'><pose>0 0 0.836 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fl'><pose>0 -0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fr'><pose>0 0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='glass'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.02 1.16 1.16</size></box></geometry>
+          <material>
+            <ambient>0.55 0.72 0.88 0.35</ambient>
+            <diffuse>0.55 0.72 0.88 0.35</diffuse>
+            <specular>0.95 0.95 0.95 1</specular>
+            <emissive>0.02 0.05 0.08 0</emissive>
+          </material>
+          <transparency>0.5</transparency>
+        </visual>
+        <visual name='mh'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 1.16 0.03</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <visual name='mv'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 0.03 1.16</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <collision name='col'><pose>0 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 1.22</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- ── WINDOW 3: Back wall, x=-2.0 ── -->
+    <!-- Back wall inner face: y=+5.0. Window faces -Y (into room). rot=-pi/2 -->
+    <model name='window_3'>
+      <static>1</static>
+      <pose>-2.0 7.5 0 0 0 -1.5708</pose>
+      <link name='link'>
+        <visual name='ft'><pose>0 0 2.116 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fb'><pose>0 0 0.836 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fl'><pose>0 -0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fr'><pose>0 0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='glass'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.02 1.16 1.16</size></box></geometry>
+          <material>
+            <ambient>0.55 0.72 0.88 0.35</ambient>
+            <diffuse>0.55 0.72 0.88 0.35</diffuse>
+            <specular>0.95 0.95 0.95 1</specular>
+            <emissive>0.02 0.05 0.08 0</emissive>
+          </material>
+          <transparency>0.5</transparency>
+        </visual>
+        <visual name='mh'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 1.16 0.03</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <visual name='mv'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 0.03 1.16</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <collision name='col'><pose>0 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 1.22</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- ── WINDOW 4: Front wall, x=+2.0 ── -->
+    <!-- Front wall inner face: y=-5.0. Window faces +Y (into room). rot=+pi/2 -->
+    <model name='window_4'>
+      <static>1</static>
+      <pose>2.0 -7.5 0 0 0 1.5708</pose>
+      <link name='link'>
+        <visual name='ft'><pose>0 0 2.116 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fb'><pose>0 0 0.836 0 0 0</pose>
+          <geometry><box><size>0.15 1.32 0.06</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fl'><pose>0 -0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='fr'><pose>0 0.64 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 0.06 1.22</size></box></geometry>
+          <material><ambient>0.30 0.22 0.14 1</ambient><diffuse>0.35 0.26 0.16 1</diffuse></material>
+        </visual>
+        <visual name='glass'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.02 1.16 1.16</size></box></geometry>
+          <material>
+            <ambient>0.55 0.72 0.88 0.35</ambient>
+            <diffuse>0.55 0.72 0.88 0.35</diffuse>
+            <specular>0.95 0.95 0.95 1</specular>
+            <emissive>0.02 0.05 0.08 0</emissive>
+          </material>
+          <transparency>0.5</transparency>
+        </visual>
+        <visual name='mh'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 1.16 0.03</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <visual name='mv'><pose>0.04 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.03 0.03 1.16</size></box></geometry>
+          <material><ambient>0.28 0.20 0.12 1</ambient><diffuse>0.33 0.24 0.15 1</diffuse></material>
+        </visual>
+        <collision name='col'><pose>0 0 1.476 0 0 0</pose>
+          <geometry><box><size>0.15 1.22 1.22</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!--
+    ================================================================
+      DOORS (2 total) — using door_3d mesh
+      Door opening: 1.0m wide x 2.1m tall
+      Door local frame: mesh origin at bottom-left of door panel.
+      We wrap each door in a wood frame + the mesh.
+
+      ROTATION RULES (door local +X faces INTO the room, same as windows):
+        Back wall  door at x=+2.0, y=+5.0: rot=-pi/2  (local+X → world -Y = into room)
+        Front wall door at x=-2.0, y=-5.0: rot=+pi/2  (local+X → world +Y = into room)
+    ================================================================
+    -->
+
+    <!-- ── DOOR 1: Back wall, x=+2.0 — CLOSED door panel ── -->
+    <!--
+      Back wall inner face: y=+5.0
+      Door opening: x=1.5..2.5 (1m wide), z=0..2.1
+      Door sits flush with inner face (y=5.0), panel thickness 0.06m
+      rot=-pi/2 so local +X faces into room (-Y world)
+    -->
+    <model name='door_1'>
+      <static>1</static>
+      <pose>2.0 7.5 0 0 0 -1.5708</pose>
+      <link name='link'>
+        <!-- wood frame top -->
+        <visual name='ft'><pose>0 0 2.17 0 0 0</pose>
+          <geometry><box><size>0.10 1.10 0.08</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cft'><pose>0 0 2.17 0 0 0</pose>
+          <geometry><box><size>0.10 1.10 0.08</size></box></geometry></collision>
+        <!-- wood frame left side -->
+        <visual name='fl'><pose>0 -0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cfl'><pose>0 -0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry></collision>
+        <!-- wood frame right side -->
+        <visual name='fr'><pose>0 0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cfr'><pose>0 0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry></collision>
+        <!-- door panel (closed, flush with wall inner face) -->
+        <visual name='panel'><pose>0.03 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.06 0.90 2.08</size></box></geometry>
+          <material><ambient>0.48 0.34 0.20 1</ambient><diffuse>0.52 0.38 0.22 1</diffuse><specular>0.08 0.07 0.05 1</specular></material>
+        </visual>
+        <collision name='cpanel'><pose>0.03 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.06 0.90 2.08</size></box></geometry></collision>
+        <!-- door panel top rail -->
+        <visual name='rail_t'><pose>0.04 0 1.88 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.20</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door panel bottom rail -->
+        <visual name='rail_b'><pose>0.04 0 0.15 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.22</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door panel middle rail -->
+        <visual name='rail_m'><pose>0.04 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.08</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door handle (knob) — room side -->
+        <visual name='knob'><pose>0.07 0.35 1.05 0 0 0</pose>
+          <geometry><sphere><radius>0.03</radius></sphere></geometry>
+          <material><ambient>0.70 0.60 0.20 1</ambient><diffuse>0.75 0.65 0.22 1</diffuse><specular>0.90 0.80 0.30 1</specular></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ── DOOR 2: Front wall, x=-2.0 — CLOSED door panel ── -->
+    <!--
+      Front wall inner face: y=-5.0
+      rot=+pi/2 so local +X faces into room (+Y world)
+    -->
+    <model name='door_2'>
+      <static>1</static>
+      <pose>-2.0 -7.5 0 0 0 1.5708</pose>
+      <link name='link'>
+        <!-- wood frame top -->
+        <visual name='ft'><pose>0 0 2.17 0 0 0</pose>
+          <geometry><box><size>0.10 1.10 0.08</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cft'><pose>0 0 2.17 0 0 0</pose>
+          <geometry><box><size>0.10 1.10 0.08</size></box></geometry></collision>
+        <!-- wood frame left side -->
+        <visual name='fl'><pose>0 -0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cfl'><pose>0 -0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry></collision>
+        <!-- wood frame right side -->
+        <visual name='fr'><pose>0 0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry>
+          <material><ambient>0.32 0.24 0.15 1</ambient><diffuse>0.38 0.28 0.17 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+        </visual>
+        <collision name='cfr'><pose>0 0.52 1.05 0 0 0</pose>
+          <geometry><box><size>0.10 0.08 2.10</size></box></geometry></collision>
+        <!-- door panel (closed, flush with wall inner face) -->
+        <visual name='panel'><pose>0.03 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.06 0.90 2.08</size></box></geometry>
+          <material><ambient>0.48 0.34 0.20 1</ambient><diffuse>0.52 0.38 0.22 1</diffuse><specular>0.08 0.07 0.05 1</specular></material>
+        </visual>
+        <collision name='cpanel'><pose>0.03 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.06 0.90 2.08</size></box></geometry></collision>
+        <!-- door panel top rail -->
+        <visual name='rail_t'><pose>0.04 0 1.88 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.20</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door panel bottom rail -->
+        <visual name='rail_b'><pose>0.04 0 0.15 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.22</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door panel middle rail -->
+        <visual name='rail_m'><pose>0.04 0 1.05 0 0 0</pose>
+          <geometry><box><size>0.07 0.88 0.08</size></box></geometry>
+          <material><ambient>0.40 0.28 0.16 1</ambient><diffuse>0.44 0.32 0.19 1</diffuse></material>
+        </visual>
+        <!-- door handle (knob) — room side -->
+        <visual name='knob'><pose>0.07 0.35 1.05 0 0 0</pose>
+          <geometry><sphere><radius>0.03</radius></sphere></geometry>
+          <material><ambient>0.70 0.60 0.20 1</ambient><diffuse>0.75 0.65 0.22 1</diffuse><specular>0.90 0.80 0.30 1</specular></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

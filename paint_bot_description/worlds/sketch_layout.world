@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="sketch_layout">
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <gui>
+      <camera name="user_camera">
+        <pose>2.8 -5.3 20 0 1.5708 0</pose>
+        <projection_type>orthographic</projection_type>
+      </camera>
+    </gui>
+
+    <!--
+      World built from the hand-drawn layout sketch (layout.jpeg).
+      Origin = top-left outer corner of the sketch (V1), X = sketch-right, Y = sketch-down (negative).
+      Wall thickness 0.15 m and height 3.0 m are not given in the sketch — chosen to match
+      the style of the other test worlds in this package.
+
+      Path (single continuous wall the robot follows):
+        V1(0,0) -> V2(0,0) -> V3(0,-0.575) -> V4(0.9,-0.575) -> V5(0.9,0)
+        -> V6(4.9,0) -> V7(4.9,-0.575) -> V8(5.6,-0.575) -> V9(5.6,-10.575)
+
+      S2/S3/S4: the 0.9 x 0.575 notch near the top-left corner.
+      S5: 4.0 m top-wall run after the notch.
+      S6/S7: the 0.575 step-down + 0.7 m run to the long wall.
+      S8: the 10 m long wall.
+
+      Pillar: free-standing bump-out (the dash-dot line in the sketch is a dimension
+      reference, not a wall, so this box is not attached to the long wall). Width 0.46 m,
+      0.24 m clear gap from the long wall inner face (x=5.525): pillar spans 4.825 to 5.285.
+      Its position along the 10 m wall was not dimensioned in the sketch, so it is
+      centered on that run — adjust pillar pose Y if you want it elsewhere.
+    -->
+    <model name="sketch_layout_walls">
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+      <link name="link">
+
+        <!-- S2: west side of notch 1 -->
+        <visual name="v_s2"><pose>0 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s2"><pose>0 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S3: floor of notch 1 -->
+        <visual name="v_s3"><pose>0.45 -0.575 1.5 0 0 0</pose>
+          <geometry><box><size>1.05 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s3"><pose>0.45 -0.575 1.5 0 0 0</pose>
+          <geometry><box><size>1.05 0.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S4: east side of notch 1 -->
+        <visual name="v_s4"><pose>0.9 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s4"><pose>0.9 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S5: top wall, 4.0 m run after notch 1 -->
+        <visual name="v_s5"><pose>2.9 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.15 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s5"><pose>2.9 0 1.5 0 0 0</pose>
+          <geometry><box><size>4.15 0.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S6: 0.575 step down -->
+        <visual name="v_s6"><pose>4.9 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s6"><pose>4.9 -0.2875 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 0.725 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S7: 0.7 m run to the long wall -->
+        <visual name="v_s7"><pose>5.25 -0.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.85 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s7"><pose>5.25 -0.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.85 0.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- S8: long wall, 10 m -->
+        <visual name="v_s8"><pose>5.6 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s8"><pose>5.6 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- Pillar: free-standing bump-out near the long wall -->
+        <visual name="v_pillar"><pose>5.055 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.46 0.9 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_pillar"><pose>5.055 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.46 0.9 3.0</size></box></geometry>
+        </collision>
+
+      </link>
+    </model>
+
+  </world>
+</sdf>

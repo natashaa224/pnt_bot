@@ -1,0 +1,593 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="sensors" params="parent">
+
+        <!-- IMU Link -->
+        <link name="imu_link"/>
+
+        <!-- IMU Joint -->
+        <joint name="imu_joint" type="fixed">
+            <parent link="${parent}"/>
+            <child link="imu_link"/>
+            <origin xyz="0.0 0 0.068" rpy="0 0 0"/>
+        </joint>
+
+        <!-- Lidar Link -->
+        <link name="lidar_link">
+            <inertial>
+                <origin xyz="-0.012569 0.002836 0.010458" rpy="0 0 0" />
+                <mass value="0.15" />
+                <inertia ixx="1.2414E-05"
+                        ixy="4.7235E-07"
+                        ixz="2.1139E-08"
+                        iyy="1.2922E-05"
+                        iyz="-2.6102E-08"
+                        izz="2.3177E-05" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/lidar_link.STL" />
+                </geometry>
+                <material name="light_black"/>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Lidar Joint -->
+        <joint name="lidar_joint" type="fixed">
+            <origin xyz="0.28397 -0.16451 0.65" rpy="0 0 0" />
+            <parent link="${parent}" />
+            <child link="lidar_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Lidar Cliff Link -->
+        <link name="lidar_cliff_link">
+            <inertial>
+                <origin xyz="-0.0028604 -0.012565 0.0087658" rpy="0 0 0" />
+                <mass value="0.15" />
+                <inertia ixx="1.2923E-05"
+                        ixy="-4.7252E-07"
+                        ixz="-6.3395E-08"
+                        iyy="1.2414E-05"
+                        iyz="1.7017E-08"
+                        izz="2.3177E-05" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/lidar_cliff_link.STL" />
+                </geometry>
+                <material name="light_black"/>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Lidar Cliff Joint -->
+        <joint name="idar_cliff_joint" type="fixed">
+            <origin xyz="0.458 0 0.115" rpy="0 0.56723 0" />
+            <parent link="${parent}" />
+            <child link="lidar_cliff_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Depth Camera Link -->
+        <link name="depth_camera_link">
+            <inertial>
+                <origin xyz="-0.013053 0.00024075 -4.4134E-05" rpy="0 0 0" />
+                <mass value="0.15" />
+                <inertia ixx="2.7278E-05"
+                        ixy="2.4451E-07"
+                        ixz="-9.6376E-10"
+                        iyy="3.9449E-06"
+                        iyz="-3.4359E-09"
+                        izz="2.7363E-05" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/depth_camera_link.STL" />
+                </geometry>
+                <material name="sensor_light_gray">
+                    <color rgba="0.89412 0.89412 0.89412 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Depth Camera Joint -->
+        <joint name="depth_camera_joint" type="fixed">
+            <origin xyz="0.11854 -0.2221 1.1541" rpy="-1.5708 0.0 -0.40143" />
+            <parent link="${parent}" />
+            <child link="depth_camera_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Depth Camera Visual Frame -->
+        <link name="depth_camera_visual_link"/>
+        <joint name="depth_camera_visual_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+            <parent link="depth_camera_link" />
+            <child link="depth_camera_visual_link" />
+        </joint>
+
+        <!-- Front Right Ultrasonic Link -->
+        <link name="front_right_ultrasonic_link">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="0.05" />
+                <inertia ixx="1.0e-5"
+                        ixy="0"
+                        ixz="0"
+                        iyy="1.0e-5"
+                        iyz="0"
+                        izz="1.0e-5" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/front_right_ultrasonic_link.STL" />
+                </geometry>
+                <material name="ultrasonic_blue">
+                    <color rgba="0.79216 0.81961 0.93333 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Front Right Ultrasonic Joint -->
+        <joint name="front_right_ultrasonic_joint" type="fixed">
+            <origin xyz="0.48663 -0.17 0.045" rpy="0 0 0" />
+            <parent link="${parent}" />
+            <child link="front_right_ultrasonic_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Front Left Ultrasonic Link -->
+        <link name="front_left_ultrasonic_link">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="0.05" />
+                <inertia ixx="1.0e-5"
+                        ixy="0"
+                        ixz="0"
+                        iyy="1.0e-5"
+                        iyz="0"
+                        izz="1.0e-5" />
+            </inertial>
+            <visual>
+                <origin xyz="0 -0.34 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/front_left_ultrasonic_link.STL" />
+                </geometry>
+                <material name="ultrasonic_blue">
+                    <color rgba="0.79216 0.81961 0.93333 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 -0.34 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Front Left Ultrasonic Joint -->
+        <joint name="front_left_ultrasonic_joint" type="fixed">
+            <origin xyz="0.48663 0.17 0.045" rpy="0 0 0" />
+            <parent link="${parent}" />
+            <child link="front_left_ultrasonic_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Rear Right Ultrasonic Link -->
+        <link name="rear_right_ultrasonic_link">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="0.05" />
+                <inertia ixx="1.0e-5"
+                        ixy="0"
+                        ixz="0"
+                        iyy="1.0e-5"
+                        iyz="0"
+                        izz="1.0e-5" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/rear_right_ultrasonic_link.STL" />
+                </geometry>
+                <material name="ultrasonic_blue">
+                    <color rgba="0.79216 0.81961 0.93333 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Rear Right Ultrasonic Joint -->
+        <joint name="rear_right_ultrasonic_joint" type="fixed">
+            <origin xyz="-0.48663 -0.17 0.045" rpy="0 0 -3.1416" />
+            <parent link="${parent}" />
+            <child link="rear_right_ultrasonic_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- Rear Left Ultrasonic Link -->
+        <link name="rear_left_ultrasonic_link">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="0.05" />
+                <inertia ixx="1.0e-5"
+                        ixy="0"
+                        ixz="0"
+                        iyy="1.0e-5"
+                        iyz="0"
+                        izz="1.0e-5" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/rear_left_ultrasonic_link.STL" />
+                </geometry>
+                <material name="ultrasonic_blue">
+                    <color rgba="0.79216 0.81961 0.93333 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Rear Left Ultrasonic Joint -->
+        <joint name="rear_left_ultrasonic_joint" type="fixed">
+            <origin xyz="-0.48663 0.17 0.045" rpy="0 0 -3.1416" />
+            <parent link="${parent}" />
+            <child link="rear_left_ultrasonic_link" />
+            <axis xyz="0 0 0" />
+        </joint>
+
+        <!-- ==================== GAZEBO PROPERTIES FOR SENSORS ==================== -->
+        <!-- Lidar -->
+        <gazebo reference="lidar_link">
+            <material>Gazebo/Blue</material>
+            <sensor type="ray" name="lidar_sensor">
+            <pose>0 0 0 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>40</update_rate>
+            <ray>
+                <scan>
+                <horizontal>
+                    <samples>720</samples>
+                    <resolution>1</resolution>
+                    <min_angle>-1.570796</min_angle>
+                    <max_angle>1.570796</max_angle>
+                </horizontal>
+                </scan>
+                <range>
+                <min>0.10</min>
+                <max>30.0</max>
+                <resolution>0.01</resolution>
+                </range>
+                <noise>
+                <type>gaussian</type>
+                <mean>0.0</mean>
+                <stddev>0.01</stddev>
+                </noise>
+            </ray>
+            <plugin name="gazebo_ros_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+                <ros>
+                    <namespace>/paint_bot</namespace>
+                    <remapping>~/out:=scan</remapping>
+                </ros>
+                <output_type>sensor_msgs/LaserScan</output_type>
+                <frame_name>lidar_link</frame_name>
+            </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- Lidar Cliff -->
+        <gazebo reference="lidar_cliff_link">
+            <material>Gazebo/Blue</material>
+            <sensor type="ray" name="lidar_cliff_sensor">
+                <pose>0 0 0 0 0 0</pose>
+                <visualize>false</visualize>
+                <update_rate>40</update_rate>
+                <ray>
+                    <scan>
+                    <horizontal>
+                        <samples>720</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-1.0472</min_angle>
+                        <max_angle>1.0472</max_angle>
+                    </horizontal>
+                    </scan>
+                    <range>
+                    <min>0.10</min>
+                    <max>30.0</max>
+                    <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.01</stddev>
+                    </noise>
+                </ray>
+                <plugin name="gazebo_ros_lidar_cliff_controller" filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>~/out:=scan_cliff</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/LaserScan</output_type>
+                    <frame_name>lidar_cliff_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- Depth Camera -->
+        <gazebo reference="depth_camera_link">
+            <material>Gazebo/Black</material>
+            <sensor name="paint_bot_depth_camera" type="depth">
+                <update_rate>20</update_rate>
+                <camera>
+                <horizontal_fov>1.047198</horizontal_fov>
+                <vertical_fov>0.785398</vertical_fov>
+                <image>
+                    <width>640</width>
+                    <height>480</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.05</near>
+                    <far>3.0</far>
+                </clip>
+                </camera>
+                <plugin name="paint_bot_depth_controller" filename="libgazebo_ros_camera.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>image_raw:=color/image_raw</remapping>
+                        <remapping>camera_info:=color/camera_info</remapping>
+                        <remapping>depth/image_raw:=depth/image_raw</remapping>
+                        <remapping>depth/camera_info:=depth/camera_info</remapping>
+                        <remapping>points:=depth/points</remapping>
+                    </ros>
+                    <min_depth>0.1</min_depth>
+                    <max_depth>3.0</max_depth>
+                    <camera_name>depth_camera</camera_name>
+                    <frame_name>depth_camera_visual_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- IMU -->
+        <gazebo reference="imu_link">
+            <gravity>true</gravity>
+            <sensor name="imu_sensor" type="imu">
+                <always_on>true</always_on>
+                <update_rate>100</update_rate>
+                <visualize>true</visualize>
+                <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                    <ros>
+                        <namespace>/</namespace>
+                        <remapping>~/out:=imu/out</remapping>
+                    </ros>
+                    <frame_name>imu_link</frame_name>
+                    <initial_orientation_as_reference>false</initial_orientation_as_reference>
+                </plugin>
+                <pose>0 0 0 0 0 0</pose>
+            </sensor>
+        </gazebo>
+
+        <!-- Ultrasonic Sensors -->
+        <!-- Front Right -->
+        <gazebo reference="front_right_ultrasonic_link">
+            <material>Gazebo/Blue</material>
+            <sensor name="front_right_ultrasonic_sensor" type="ray">
+                <always_on>true</always_on>
+                <update_rate>20</update_rate>
+                <visualize>true</visualize>
+                <pose>0 0 0 0 0 0</pose>
+                <ray>
+                    <scan>
+                        <horizontal>
+                        <samples>5</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.15</min_angle>
+                        <max_angle>0.15</max_angle>
+                        </horizontal>
+                        <vertical>
+                        <samples>3</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.05</min_angle>
+                        <max_angle>0.05</max_angle>
+                        </vertical>
+                    </scan>
+                    <range>
+                        <min>0.02</min>
+                        <max>4.0</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.01</stddev>
+                    </noise>
+                </ray>
+                <plugin name="front_right_ultrasonic_plugin" filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>~/out:=front_right/range</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/Range</output_type>
+                    <frame_name>front_right_ultrasonic_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- Front Left -->
+        <gazebo reference="front_left_ultrasonic_link">
+            <material>Gazebo/Blue</material>
+            <sensor name="front_left_ultrasonic_sensor" type="ray">
+                <always_on>true</always_on>
+                <update_rate>20</update_rate>
+                <visualize>true</visualize>
+                <pose>0 0 0 0 0 0</pose>
+                <ray>
+                    <scan>
+                        <horizontal>
+                        <samples>5</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.15</min_angle>
+                        <max_angle>0.15</max_angle>
+                        </horizontal>
+                        <vertical>
+                        <samples>3</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.05</min_angle>
+                        <max_angle>0.05</max_angle>
+                        </vertical>
+                    </scan>
+                    <range>
+                        <min>0.02</min>
+                        <max>4.0</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.01</stddev>
+                    </noise>
+                </ray>
+                <plugin name="front_left_ultrasonic_plugin" filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>~/out:=front_left/range</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/Range</output_type>
+                    <frame_name>front_left_ultrasonic_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- Rear Right -->
+        <gazebo reference="rear_right_ultrasonic_link">
+            <material>Gazebo/Blue</material>
+            <sensor name="rear_right_ultrasonic_sensor" type="ray">
+                <always_on>true</always_on>
+                <update_rate>20</update_rate>
+                <visualize>true</visualize>
+                <pose>0 0 0 0 0 0</pose>
+                <ray>
+                    <scan>
+                        <horizontal>
+                        <samples>5</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.15</min_angle>
+                        <max_angle>0.15</max_angle>
+                        </horizontal>
+                        <vertical>
+                        <samples>3</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.05</min_angle>
+                        <max_angle>0.05</max_angle>
+                        </vertical>
+                    </scan>
+                    <range>
+                        <min>0.02</min>
+                        <max>4.0</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.01</stddev>
+                    </noise>
+                </ray>
+                <plugin name="rear_right_ultrasonic_plugin" filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>~/out:=rear_right/range</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/Range</output_type>
+                    <frame_name>rear_right_ultrasonic_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+        <!-- Rear Left -->
+        <gazebo reference="rear_left_ultrasonic_link">
+            <material>Gazebo/Blue</material>
+            <sensor name="rear_left_ultrasonic_sensor" type="ray">
+                <always_on>true</always_on>
+                <update_rate>20</update_rate>
+                <visualize>true</visualize>
+                <pose>0 0 0 0 0 0</pose>
+                <ray>
+                    <scan>
+                        <horizontal>
+                        <samples>5</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.15</min_angle>
+                        <max_angle>0.15</max_angle>
+                        </horizontal>
+                        <vertical>
+                        <samples>3</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.05</min_angle>
+                        <max_angle>0.05</max_angle>
+                        </vertical>
+                    </scan>
+                    <range>
+                        <min>0.02</min>
+                        <max>4.0</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.01</stddev>
+                    </noise>
+                </ray>
+                <plugin name="rear_left_ultrasonic_plugin" filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>/paint_bot</namespace>
+                        <remapping>~/out:=rear_left/range</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/Range</output_type>
+                    <frame_name>rear_left_ultrasonic_link</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+
+    </xacro:macro>
+
+</robot>

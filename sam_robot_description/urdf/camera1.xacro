@@ -1,0 +1,224 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ═══════════════════════════════════════════════
+       CAMERA BASE LINK  (visual body + mount pole)
+  ════════════════════════════════════════════════ -->
+  <joint name="camera_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="camera_link"/>
+    <!-- <origin xyz="0.276 0 1.134" rpy="0 -0.23 -0.30"/> -->
+    <origin xyz="0.322 0.05 1.144" rpy="0 0 -0.4"/> 
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.010 0.03 0.03"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.05"/>
+      <geometry>
+        <cylinder radius="0.002" length="0.1"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.035"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <!-- ═══════════════════════════════════════════════
+       DEPTH STREAM FRAMES
+  ════════════════════════════════════════════════ -->
+  <joint name="camera_depth_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_depth_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="camera_depth_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <joint name="camera_depth_optical_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_depth_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+  <link name="camera_depth_optical_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <!-- ═══════════════════════════════════════════════
+       COLOR STREAM FRAMES
+  ════════════════════════════════════════════════ -->
+  <joint name="camera_color_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_color_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="camera_color_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <joint name="camera_color_optical_joint" type="fixed">
+    <parent link="camera_color_frame"/>
+    <child link="camera_color_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+  <link name="camera_color_optical_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <!-- ═══════════════════════════════════════════════
+       LEFT IR STREAM FRAMES
+  ════════════════════════════════════════════════ -->
+  <joint name="camera_left_ir_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_left_ir_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="camera_left_ir_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <joint name="camera_left_ir_optical_joint" type="fixed">
+    <parent link="camera_left_ir_frame"/>
+    <child link="camera_left_ir_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+  <link name="camera_left_ir_optical_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <!-- ═══════════════════════════════════════════════
+       RIGHT IR STREAM FRAMES
+  ════════════════════════════════════════════════ -->
+  <joint name="camera_right_ir_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_right_ir_frame"/>
+    <origin xyz="0 -0.050 0" rpy="0 0 0"/>
+  </joint>
+  <link name="camera_right_ir_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <joint name="camera_right_ir_optical_joint" type="fixed">
+    <parent link="camera_right_ir_frame"/>
+    <child link="camera_right_ir_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+  <link name="camera_right_ir_optical_frame">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial> -->
+  </link>
+
+  <!-- gazebo camera -->
+  <gazebo reference="camera_link">
+    <material>Gazebo/Black</material>
+
+    <!-- DEPTH sensor — Gazebo 11 native depth, publishes 32FC1 -->
+    <sensor name="depth_sensor" type="depth">
+      <camera name="camera">
+        <horizontal_fov>1.518</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>3.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.005</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>10</update_rate>
+      <visualize>0</visualize>
+      <plugin name="depth_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>image_raw:=/camera/aligned_depth_to_color/image_raw</remapping>
+          <remapping>camera_info:=/camera/depth/camera_info</remapping>
+          <remapping>points:=/camera/depth/points</remapping>
+        </ros>
+        <camera_name>depth_cam</camera_name>
+        <frame_name>camera_depth_optical_frame</frame_name>
+        <min_depth>0.3</min_depth>
+        <max_depth>3.0</max_depth>
+      </plugin>
+    </sensor>
+
+    <!-- COLOR sensor -->
+    <sensor name="color_sensor" type="camera">
+      <camera name="camera">
+        <!-- <horizontal_fov>1.204</horizontal_fov> -->
+        <horizontal_fov>1.518</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>RGB_INT8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>8.0</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>10</update_rate>
+      <visualize>1</visualize>
+      <plugin name="color_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>image_raw:=/camera/color/image_raw</remapping>
+          <remapping>camera_info:=/camera/color/camera_info</remapping>
+        </ros>
+        <camera_name>color_cam</camera_name>
+        <frame_name>camera_color_optical_frame</frame_name>
+      </plugin>
+    </sensor>
+
+  </gazebo>
+
+</robot>

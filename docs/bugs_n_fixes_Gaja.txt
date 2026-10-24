@@ -1,0 +1,28 @@
+display issues 
+
+echo 'export LIBGL_ALWAYS_SOFTWARE=1' >> ~/.bashrc
+echo 'export MESA_GL_VERSION_OVERRIDE=3.3' >> ~/.bashrc
+source ~/.bashrc
+
+
+find . -type f -name "*:Zone.Identifier" -delete
+
+
+
+ cd ~/ros_ws/painting_robot_ws/ && source install/setup.bash  &&  ros2 launch  painting_robot_bringup corner_bringup.launch.py
+
+ source install/setup.bash  && ros2 launch  painting_robot_bringup paintbot_sim_bringup.launch.py
+
+
+  cd ros_ws/painting_robot_ws/ && source install/setup.bash ros2 launch && ros2 run painting_robot_hmi hmi_keyboard_node
+
+pkill -f gzserver; pkill -f gzclient; pkill -f gazebo; pkill -f ros2; pkill -f robot_state_publisher; pkill -f controller_manager
+
+Lidar
+ls /dev/ttyUSB*
+sudo chmod 777 /dev/ttyUSB0
+
+
+Wrist
+sudo chmod 666 /dev/ttyACM0
+

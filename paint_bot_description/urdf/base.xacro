@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<robot name="paint_bot" xmlns:xacro="http://ros.org/wiki/xacro">
+    <!-- Base Footprint Link -->
+    <link name="base_footprint"/>
+
+    <!-- Base Footprint Joint -->
+    <joint name="base_joint" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="base_link"/>
+        <origin xyz="0.0 0.0 0.11" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Base Link -->
+    <link name="base_link">
+        <inertial>
+            <!-- Adjusted Y COM (+0.025) to act as a virtual counterweight for the off-center gantry payload -->
+            <origin xyz="-0.013481 0.025 0.19404"
+                    rpy="0 0 0" />
+            <mass value="50" />
+            <inertia ixx="1.6079"
+                    ixy="0.0030591"
+                    ixz="0.06246"
+                    iyy="1.7294"
+                    iyz="-0.005081"
+                    izz="2.6836" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://paint_bot_description/meshes/base_link.STL" />
+            </geometry>
+            <material name="white"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.14" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.7 0.55 0.20"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <!-- Model Colors -->
+    <!-- Base Link -->
+    <gazebo reference="base_link">
+        <material>Gazebo/White</material>
+    </gazebo>
+</robot>

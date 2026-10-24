@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="caster" params="name parent plate_xyz wheel_xyz">
+
+        <!-- Plate link -->
+        <link name="${name}_castor_plate_link">
+            <inertial>
+                <origin xyz="0.0039921 0.00012704 -0.012856" rpy="0 0 0"/>
+                <mass value="0.5"/>
+                <!-- Low inertia to allow immediate swiveling response to steering torque -->
+                <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                         iyy="0.0001" iyz="0.0"
+                         izz="0.0001"/>
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/${name}_castor_plate_link.STL"/>
+                </geometry>
+                <material name="">
+                    <color rgba="0.89412 0.89412 0.89412 1"/>
+                </material>
+            </visual>
+        </link>
+
+        <!-- Fixed plate joint to eliminate solver lag -->
+        <joint name="${name}_castor_plate_joint" type="fixed">
+            <origin xyz="${plate_xyz}" rpy="0 0 0"/>
+            <parent link="${parent}"/>
+            <child link="${name}_castor_plate_link"/>
+        </joint>
+
+        <!-- Wheel link -->
+        <link name="${name}_castor_wheel_link">
+            <inertial>
+                <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+                <mass value="1.0"/>
+                <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                         iyy="0.0001" iyz="0.0"
+                         izz="0.0001"/>
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/${name}_castor_wheel_link.STL"/>
+                </geometry>
+                <material name="">
+                    <color rgba="0.89412 0.89412 0.89412 1"/>
+                </material>
+            </visual>
+
+            <!-- Sphere collision geometry for contact point stability -->
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <sphere radius="0.03"/>
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Continuous wheel joint to allow rolling and eliminate dragging -->
+        <joint name="${name}_castor_wheel_joint" type="continuous">
+            <origin xyz="${wheel_xyz}" rpy="0 0 0"/>
+            <parent link="${name}_castor_plate_link"/>
+            <child link="${name}_castor_wheel_link"/>
+            <axis xyz="0 1 0"/>
+        </joint>
+
+        <!-- Gazebo joint properties for implicit solver stability -->
+        <gazebo reference="${name}_castor_plate_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+        <gazebo reference="${name}_castor_wheel_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+
+        <!-- Caster wheel Gazebo contact properties (mu1=mu2=0.4 matching reference truebot) -->
+        <gazebo reference="${name}_castor_wheel_link">
+            <material>Gazebo/DarkGrey</material>
+            <mu1>0.4</mu1>
+            <mu2>0.4</mu2>
+            <kp>1000000.0</kp>
+            <kd>1000.0</kd>
+            <minDepth>0.001</minDepth>
+        </gazebo>
+
+        <gazebo reference="${name}_castor_plate_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+
+    </xacro:macro>
+
+</robot>

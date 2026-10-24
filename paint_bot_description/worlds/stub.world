@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="clean_office_stub">
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Back wall with stub -->
+    <model name="wall_back">
+    <static>true</static>
+    <pose>0 7.575 0 0 0 0</pose>
+    <link name="link">
+        <!-- Solid back wall -->
+        <visual name="vBack"><pose>0 0 1.5 0 0 0</pose>
+        <geometry><box><size>10.0 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="cBack"><pose>0 0 1.5 0 0 0</pose>
+        <geometry><box><size>10.0 0.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- Stub protrusion at w,d,h-->
+        <visual name="vStub"><pose>1.0 0 1.5 0 0 0</pose>
+        <geometry><box><size>1.75 2.25 3.0</size></box></geometry>
+        </visual>
+        <collision name="cStub"><pose>1.0 0 1.5 0 0 0</pose>
+        <geometry><box><size>1.75 2.25 3.0</size></box></geometry>
+        </collision>
+    </link>
+    </model>
+
+
+    <!-- Front wall -->
+    <model name="wall_front">
+      <static>true</static>
+      <pose>0 -7.575 0 0 0 0</pose>
+      <link name="link">
+        <visual name="vFront"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>10.0 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="cFront"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>10.0 0.15 3.0</size></box></geometry>
+        </collision>
+           <!-- Stub protrusion -->
+        <visual name="vStub"><pose>0 2.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.3 .15 3.0</size></box></geometry>
+        </visual>
+        <collision name="cStub"><pose>0 2.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.3 .15 3.0</size></box></geometry>
+        </collision>
+
+      </link>
+    </model>
+
+    <!-- Right wall with stub -->
+<!--     <model name="wall_right">
+      <static>true</static>
+      <pose>7.575 0 0 0 0 0</pose>
+      <link name="link">
+        <visual name="vRight"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.0 3.0</size></box></geometry>
+        </visual>
+        <collision name="cRight"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.0 3.0</size></box></geometry>
+        </collision>     
+      </link>
+    </model> -->
+
+    <!-- Left wall -->
+<!--     <model name="wall_left">
+      <static>true</static>
+      <pose>-7.575 0 0 0 0 0</pose>
+      <link name="link">
+        <visual name="vLeft"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.0 3.0</size></box></geometry>
+        </visual>
+        <collision name="cLeft"><pose>0 0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.0 3.0</size></box></geometry>
+        </collision>
+      </link>
+    </model> -->
+
+  </world>
+</sdf>

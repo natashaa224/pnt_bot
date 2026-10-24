@@ -1,0 +1,37 @@
+How the two-layer control works:
+
+systemctl enable = "should this service run at boot at all" (the persistent on/off you'll set once)
+/boot/paintbot_autostart flag = "even if enabled, only actually launch if this file exists" (the easy dev toggle via ExecStartPre=test -f)
+
+So during dev you enable it once, then just touch/rm the flag to switch modes each boot — no sudo systemctl.
+
+Install (once):
+
+bash
+sudo cp paintbot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable paintbot.service     # run at boot (gated by flag)
+
+Switch modes :
+
+bash
+sudo touch /boot/paintbot_autostart        # → next boot launches robot ops
+sudo rm    /boot/paintbot_autostart        # → next boot is normal Linux
+
+During this session (test without rebooting):
+
+bash
+sudo touch /boot/paintbot_autostart        # flag must exist or it won't start
+sudo systemctl start paintbot.service      # launch now
+sudo systemctl stop  paintbot.service      # kill it
+sudo systemctl status paintbot.service     # check state
+journalctl -u paintbot.service -f          # live logs (your launch output)
+
+Notes:
+
+Restart=no — stays down on crash so you can read the error. Change to Restart=on-failure for field units later.
+
+journalctl -u paintbot -f replaces your terminal launch output — that's where the node logs go now. 
+/boot is a common flag location because it's easy to reach even from another machine (mount the SD/eMMC), but any path works — change the ExecStartPre path if you prefer /home/pi/.
+If it won't start: systemctl status will show if ExecStartPre failed (flag missing) vs the launch itself erroring. condition failed/test -f = flag not there.
+

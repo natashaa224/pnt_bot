@@ -1,0 +1,32 @@
+env_monitoring_v2:
+  ros__parameters:
+
+    # lidar_offset_x comes from common_params.yaml (/** single source of truth)
+
+    # ── internal corner (LiDAR frame, m) ──────────────────────────────────────
+    internal_approach_dist:    1.20  # latch when front wall <= this
+    internal_trigger_turnaxis: 0.904 # front-wall dist from TURN AXIS at preempt (LOCKED)
+    front_cone_half_deg:       15.0  # +/- arc for cheap front-wall read
+    min_valid_range:           0.05
+
+    # ── external corner (LiDAR frame, m) ──────────────────────────────────────
+    external_latch_max:        0.50  # latch when vertex is 0..this ahead
+    ext_trigger_turnaxis:      0.104 # turn-axis past-vertex trigger (LOCKED, R=0.8 sim)
+    trigger_dist_tol_under:    0.015 # undershoot accept window
+    trigger_dist_tol_over:     0.050 # overshoot accept window
+    sprayhead_lidar_offset:    0.22  # LiDAR->sprayhead fwd (paint cutoff)
+
+    # ── wall-lost external recovery (back-to-back corner) ─────────────────────
+    enable_wall_lost_ext_search: False
+    wall_lost_axis_band:       0.20  # m behind axis (max)
+    wall_lost_axis_eps:        0.05  # m ahead axis (slack)
+
+    # ── navigation ROI (candidate relevance: bearing + range) ─────────────────
+    # vertex in code frame (0=fwd, 270=right). wall ~0.77m -> -0.25/+0.25.
+    nav_min_range:        0.50       # reject body/self + too-close
+    nav_max_range:        1.50       # reject far walls
+    nav_sector_start_deg: 270.0      # wrapped sector 270 -> 15 (top-right quad)
+    nav_sector_end_deg:   15.0
+
+    # ── fake actuator (test-only; fake_paint toggled in launch) ───────────────
+    fake_stroke_ticks:    20         # ~1s @10Hz

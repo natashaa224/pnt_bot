@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="just_bump_out">
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <gui>
+      <camera name="user_camera">
+        <pose>2.8 -5.3 20 0 1.5708 0</pose>
+        <projection_type>orthographic</projection_type>
+      </camera>
+    </gui>
+
+    <!--
+      Long wall (10 m) + free-standing pillar bump-out only. Same coordinates as
+      sketch_layout.world with the top notch/step section removed.
+      Origin = top-left of the sketch, X right, Y down (negative).
+      Pillar 0.46 x 0.9 m, 0.24 m clear gap from the long wall inner face (x=5.525).
+    -->
+    <model name="just_bump_out_walls">
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+      <link name="link">
+
+        <!-- S8: long wall, 10 m -->
+        <visual name="v_s8"><pose>5.6 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_s8"><pose>5.6 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 10.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- Pillar: free-standing bump-out near the long wall -->
+        <visual name="v_pillar"><pose>5.055 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.46 0.9 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_pillar"><pose>5.055 -5.575 1.5 0 0 0</pose>
+          <geometry><box><size>0.46 0.9 3.0</size></box></geometry>
+        </collision>
+
+      </link>
+    </model>
+
+  </world>
+</sdf>

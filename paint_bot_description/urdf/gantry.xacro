@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="gantry" params="parent xyz rpy">
+
+        <!-- Height Adj Link -->
+        <link name="height_adj_link">
+            <inertial>
+                <origin xyz="0.022628 -0.00010699 0.64618" rpy="0 0 0" />
+                <mass value="2" />
+                <inertia ixx="0.41681"
+                        ixy="-6.9684E-08"
+                        ixz="5.4046E-07"
+                        iyy="0.41486"
+                        iyz="9.5071E-14"
+                        izz="0.0033962" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/height_adj_link.STL" />
+                </geometry>
+                <material name="height_adj_gray">
+                    <color rgba="0.75294 0.75294 0.75294 1" />
+                </material>
+            </visual>
+            <!-- Tiny collision sphere to prevent ground dragging and avoid Gazebo segfault -->
+            <collision>
+                <origin xyz="0 0 0.6" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Height Adj Joint -->
+        <joint name="zAxis_joint" type="prismatic">
+            <origin xyz="${xyz}" rpy="${rpy}" />
+            <parent link="${parent}" />
+            <child link="height_adj_link" />
+            <axis xyz="0 0 1" />
+            <limit lower="0"
+                upper="1.2"
+                effort="500"
+                velocity="0.3" />
+        </joint>
+
+        <!-- Paint Spray Gun Link -->
+        <link name="paint_spray_gun_link">
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="1" />
+                <inertia ixx="4.2e-4"
+                        ixy="0"
+                        ixz="0"
+                        iyy="3.5e-3"
+                        iyz="0"
+                        izz="3.5e-3" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh filename="package://paint_bot_description/meshes/paint_spray_gun_link.STL" />
+                </geometry>
+                <material name="white"/>
+            </visual>
+            <!-- Tiny collision sphere to prevent ground dragging and avoid Gazebo segfault -->
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0.001" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Paint Spray Gun Joint -->
+        <joint name="wrist_joint" type="prismatic">
+            <origin xyz="0.0965 0 0.033" rpy="0 0 0" />
+            <parent link="height_adj_link" />
+            <child link="paint_spray_gun_link" />
+            <axis xyz="0 0 1" />
+            <limit lower="0"
+                upper="1.4"
+                effort="200"
+                velocity="0.3" />
+        </joint>
+
+        <!-- Gazebo joint properties for implicit solver stability to prevent payload vibration -->
+        <gazebo reference="zAxis_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+        <gazebo reference="wrist_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+
+        <!-- Gazebo properties for Gantry -->
+        <gazebo reference="height_adj_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+
+        <gazebo reference="paint_spray_gun_link">
+            <material>Gazebo/Black</material>
+        </gazebo>
+
+    </xacro:macro>
+
+</robot>

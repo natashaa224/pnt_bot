@@ -1,0 +1,6 @@
+std_msgs/Header header
+int32 command_id
+bool step_complete
+bool corner_turn_complete
+bool corner_reacquired
+float32 distance_since_stroke

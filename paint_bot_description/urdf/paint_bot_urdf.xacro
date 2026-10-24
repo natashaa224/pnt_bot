@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<robot name="paint_bot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- Args -->
+    <xacro:arg name="sim" default="classic"/>
+    <xacro:property name="sim" value="$(arg sim)"/>
+
+    <xacro:arg name="attach_gantry" default="true"/>
+    <xacro:arg name="attach_sensors" default="false"/>
+
+    <!-- Include Modular URDF Files -->
+    <xacro:include filename="$(find paint_bot_description)/urdf/paint_bot_color.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/base.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/diff_drive.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/caster.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/gantry.xacro"/>
+    <!-- <xacro:include filename="$(find paint_bot_description)/urdf/camera1.xacro"/> -->
+    <xacro:include filename="$(find paint_bot_description)/urdf/paint_bot_gazebo.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/paint_bot_transmission.xacro"/>
+    <xacro:include filename="$(find paint_bot_description)/urdf/lidar.xacro"/>
+
+    <!-- Instantiate Driven Wheels -->
+    <xacro:driven_wheel name="left"  parent="base_link" xyz="0 0.288 0.010" rpy="0 0 0" y_reflect="1"/>
+    <xacro:driven_wheel name="right" parent="base_link" xyz="0 -0.288 0.010" rpy="0 0 0" y_reflect="-1"/>
+
+    <!-- Instantiate Casters -->
+    <xacro:caster name="front_right" parent="base_link" plate_xyz="0.375 -0.243 -0.015" wheel_xyz="0.025 0 -0.039"/>
+    <xacro:caster name="front_left"  parent="base_link" plate_xyz="0.375 0.243 -0.015"  wheel_xyz="0.025 0 -0.039"/>
+    <xacro:caster name="rear_right"  parent="base_link" plate_xyz="-0.375 -0.243 -0.015" wheel_xyz="0.025 0 -0.044"/>
+    <xacro:caster name="rear_left"   parent="base_link" plate_xyz="-0.375 0.243 -0.015"  wheel_xyz="0.025 0 -0.044"/>
+
+    <!-- Instantiate Gantry (Prismatic height axis + spray gun) -->
+    <xacro:if value="$(arg attach_gantry)">
+        <xacro:gantry parent="base_link" xyz="0 -0.312 0.267" rpy="0 0 -1.5708"/>
+    </xacro:if>
+
+    <!-- Instantiate Sensors (IMU, Lidars, Depth Camera, Ultrasonics) -->
+    <xacro:if value="$(arg attach_sensors)">
+        <xacro:sensors parent="base_link"/>
+    </xacro:if>
+
+    <!-- Gazebo Transmission Integration -->
+    <xacro:paint_bot_transmission 
+        left_wheel="left_wheel_joint" 
+        right_wheel="right_wheel_joint" 
+        height_paint_position="zAxis_joint" 
+        paint_spray_gun="wrist_joint"
+       />
+
+    <!-- ros2_control Gazebo plugins -->
+    <xacro:if value="${sim == 'classic'}">
+        <gazebo>
+            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so" >
+                <parameters>$(find paint_bot_description)/config/paint_bot_controller.yaml</parameters>
+                <ros>
+                    <remapping>/paint_bot/cmd_vel_unstamped:=/paint_bot/cmd_vel</remapping>
+                </ros>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <!-- <xacro:if value="${sim == 'ignition'}">
+        <gazebo>
+            <plugin name="gz_ros2_control" filename="libgz_ros2_control-system.so" >
+                <parameters>$(find paint_bot_description)/config/paint_bot_controller.yaml</parameters>
+                <ros>
+                    <remapping>/paint_bot/cmd_vel_unstamped:=/paint_bot/cmd_vel</remapping>
+                </ros>
+            </plugin>
+        </gazebo>
+    </xacro:if> -->
+
+     <joint name="imu_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="imu_link"/>
+        <origin xyz="0 0 0.01" rpy="0 0 0"/>
+    </joint>
+
+    <link name="imu_link">
+        <visual>
+            <geometry>
+                <box size="0.01 0.01 0.01"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+    </link>
+
+    <gazebo reference="imu_link">
+        <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <update_rate>50</update_rate>
+            <imu>
+                <angular_velocity>
+                    <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
+                    <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
+                    <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></x>
+                    <y><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></y>
+                    <z><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></z>
+                </linear_acceleration>
+            </imu>
+            <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+                <ros>
+                    <remapping>~/out:=imu/out</remapping>
+                </ros>
+                <initial_orientation_as_reference>false</initial_orientation_as_reference>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+</robot>

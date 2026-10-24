@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="driven_wheel" params="name parent xyz rpy y_reflect">
+
+        <link name="${name}_wheel_link">
+            <inertial>
+                <!-- Y offset reflects left/right asymmetry -->
+                <origin xyz="0.0 ${y_reflect * 0.025001} 0.0" rpy="0 0 0"/>
+                <mass value="3"/>
+                <!-- Physically realistic inertia values for 3kg wheel of 0.1m radius -->
+                <inertia ixx="0.0075" ixy="0.0" ixz="0.0"
+                         iyy="0.015" iyz="0.0"
+                         izz="0.0075"/>
+            </inertial>
+
+            <visual>
+                <origin xyz="0 ${y_reflect * 0.03} 0" rpy="${y_reflect * 1.5708} 0 0"/>
+                <geometry>
+                    <cylinder radius="0.10" length="0.02"/>
+                </geometry>
+                <material name="black"/>
+            </visual>
+
+            <!-- Sphere collision for stable physics simulation in Gazebo Classic ODE -->
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <sphere radius="0.10"/>
+                </geometry>
+            </collision>
+        </link>
+
+        <joint name="${name}_wheel_joint" type="continuous">
+            <origin xyz="${xyz}" rpy="${rpy}"/>
+            <parent link="${parent}"/>
+            <child link="${name}_wheel_link"/>
+            <axis xyz="0 1 0"/>
+            <dynamics damping="0.1" friction="0.0"/>
+            <!-- Explicit effort limit (500.0 Nm) to prevent motor sluggishness in Gazebo Classic -->
+            <limit effort="500.0" velocity="10.0"/>
+        </joint>
+
+        <!-- Gazebo joint properties for implicit solver stability -->
+        <gazebo reference="${name}_wheel_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+
+        <!-- Gazebo properties -->
+        <gazebo reference="${name}_wheel_link">
+            <material>Gazebo/Black</material>
+            <mu1>2.0</mu1>
+            <mu2>2.0</mu2>
+            <kp>1000000.0</kp>
+            <kd>50.0</kd>
+            <minDepth>0.001</minDepth>
+            <maxVel>1.0</maxVel>
+            <fdir1>1 0 0</fdir1>
+        </gazebo>
+
+    </xacro:macro>
+
+</robot>

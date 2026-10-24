@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="default">
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- FRONT -->
+    <model name="wall_front">
+      <static>true</static>
+      <pose>0 12.5 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>25 0.2 3</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>25 0.2 3</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- BACK -->
+    <model name="wall_back">
+      <static>true</static>
+      <pose>0 -12.5 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>25 0.2 3</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>25 0.2 3</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- LEFT -->
+    <model name="wall_left">
+      <static>true</static>
+      <pose>-12.5 0 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 25 3</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 25 3</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- RIGHT -->
+    <model name="wall_right">
+      <static>true</static>
+      <pose>12.5 0 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 25 3</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 25 3</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

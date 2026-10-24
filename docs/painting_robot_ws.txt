@@ -1,0 +1,101 @@
+cd ~/painting_robot_ws/src
+
+controller misinh 
+sudo apt install ros-humble-gazebo-ros2-control
+sudo apt install ros-humble-robot-localization
+sudo apt-get update && sudo apt install ros-humble-joy
+
+
+
+cd ~/painting_robot_ws/src
+echo "source ~/painting_robot_ws/install/setup.bash" >> ~/.bashrc
+
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+cd ~/ros_ws/painting_robot_ws
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install
+colcon build 
+source install/setup.bash
+ros2 launch painting_robot_bringup sim_bringup.launch.py
+
+ros2 topic pub /start_cmd std_msgs/msg/String "data: 'START'" --once
+
+
+
+# Headed (default)
+ros2 launch painting_robot_bringup sim_bringup.launch.py
+
+
+
+
+source install/setup.bash
+ros2 run painting_robot_hmi hmi_keyboard_node
+ros2 run painting_robot_mcu portenta_bridge_node
+
+source install/setup.bash && ros2 launch painting_robot_bringup real_bot_bench.launch.py
+
+# Headed (default)
+ros2 launch painting_robot_bringup sim_bringup.launch.py x:=1 y:=4.7 z:=0.1 Y:=3.1416
+
+
+joy
+
+
+--- 
+e2e gpue2e123
+
+ros2 run painting_robot_perception depth_fixture_detection_node --ros-args \
+  -p debug:=true 
+
+--- 
+raiv@paintbot-rpi4
+l&t2026
+ssh raiv@192.168.29.251
+ssh pi@172.20.10.2
+
+ssh pi@10.187.77.44 
+
+sudo dhclient -r wlan0 && sudo dhclient wlan0 # update ip add
+
+
+scp -r  pi@10.201.223.44:~/ros_ws/painting_robot_ws/captured_data/lidar_scans  C:\Users\vijet\paintbot_pi
+pi@rpicm4:~
+
+for PMC connect
+# On SBC
+ip addr show eth0
+sudo ip addr add 192.168.1.2/24 dev eth0
+sudo ip link set eth0 up
+
+
+
+ping 192.168.1.100
+hostname -I
+nc -zv 192.168.1.100 5000
+
+--- PMC 
+pio run -e portenta_h7_m7 -t upload
+
+ros2 topic echo /mcu_status_ros
+ros2 topic echo /mcu_bridge_ok
+
+# Terminal 3 on RPi4 — manually inject a cmd_vel
+ros2 topic pub /paint_bot/cmd_vel geometry_msgs/Twist \
+  "{linear: {x: 0.1}, angular: {z: 0.0}}" --rate 10
+
+
+---
+URDF
+
+ros2 launch paint_bot_description paint_bot_description.launch.py
+
+
+---vision
+
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+
+../yolox_env/bin/activate
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+
+../yolox_env/bin/activate

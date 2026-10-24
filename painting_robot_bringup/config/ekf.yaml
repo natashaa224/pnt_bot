@@ -1,0 +1,31 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+    publish_tf: true
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+   # take only vx and vyaw from odom 
+    odom0: /paint_bot/odom
+    output_topic: /paint_bot/odom_filtered
+    odom0_config: [false, false, false,  # x, y, z
+                   false, false, false,  # roll, pitch, yaw
+                   true,  false,  false,  # vx, vy, vz
+                   false, false, true,   # vroll, vpitch, vyaw
+                   false, false, false]  # ax, ay, az
+    odom0_differential: false
+    odom0_relative: false
+
+    imu0: /imu/out
+    imu0_config: [false, false, false,   # x, y, z
+                  false, false, true,    # roll, pitch, yaw
+                  false, false, false,   # vx, vy, vz
+                  false, false, true,    # vroll, vpitch, vyaw
+                  false,  false, false]   # ax, ay, az
+    imu0_differential: false
+    imu0_relative: true
+    imu0_remove_gravitational_acceleration: false

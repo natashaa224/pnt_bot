@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    target_distance: 0.77      # m — lidar-to-wall standoff (single source of truth)
+    dist_tolerance: 0.1         # m — alignment distance tolerance
+    angle_tolerance: 0.03       # rad (~2 deg) — alignment angle tolerance
+    lidar_offset_x: 0.195   # m — forward of turn axis
+    lidar_offset_y: -0.147   # m — toward right wall from turn axis

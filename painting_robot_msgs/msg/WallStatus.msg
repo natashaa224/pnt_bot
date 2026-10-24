@@ -1,0 +1,6 @@
+std_msgs/Header header
+bool wall_valid
+bool aligned
+float32 distance_error
+float32 distance_error_corrected
+float32 angle_error

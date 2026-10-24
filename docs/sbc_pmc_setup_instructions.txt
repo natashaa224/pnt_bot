@@ -1,0 +1,18 @@
+# 1. stop cloud-init managing the network
+echo 'network: {config: disabled}' | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+# 2. persistent netplan for networkd
+sudo tee /etc/netplan/01-eth0-static.yaml >/dev/null <<'EOF'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses: [192.168.1.2/24]
+EOF
+sudo chmod 600 /etc/netplan/01-eth0-static.yaml
+
+# 3. apply + reboot to confirm it survives
+sudo netplan apply
+sudo reboot

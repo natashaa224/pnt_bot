@@ -1,0 +1,31 @@
+[Unit]
+Description=Paintbot ROS launch (painting operations)
+# No PMC/network dependency — portenta_bridge_node handles its own reconnect.
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+
+# File-flag gate: the service only launches if /boot/paintbot_autostart exists.
+# ExecStartPre exits non-zero (blocking the launch) when the flag is absent.
+# Toggle without enable/disable:
+#   enable  ops boot :  sudo touch /boot/paintbot_autostart
+#   normal Linux     :  sudo rm    /boot/paintbot_autostart
+ExecStartPre=/usr/bin/test -f /boot/paintbot_autostart
+
+# Source ROS + workspace, then launch. Single bash -c so the environment sticks.
+ExecStart=/bin/bash -c 'source /opt/ros/humble/setup.bash && \
+source /home/pi/painting_robot_ws_test/painting_robot_ws/install/setup.bash && \
+exec ros2 launch painting_robot_bringup real_bot_bench.launch.py'
+
+# Debugging phase: do NOT auto-restart on crash — stay down so the error is
+# readable. Change to Restart=on-failure for field deployment.
+Restart=no
+
+# Give ROS nodes time to shut down cleanly on stop.
+KillMode=mixed
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

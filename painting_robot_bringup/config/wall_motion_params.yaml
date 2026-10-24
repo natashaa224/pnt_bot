@@ -1,0 +1,30 @@
+wall_motion_node:
+  ros__parameters:
+    # target_distance, dist_tolerance, angle_tolerance now in common_alignment_params.yaml
+    max_linear_vel: 0.15        # m/s
+    max_angular_vel: 0.8         # rad/s
+    dist_kp: 0.8                 # P gain distance correction
+    angle_kp: 1.0                # P gain angle correction
+    follow_speed: 0.10           # m/s forward speed in FOLLOW mode
+    strafe_dist_threshold: 0.5
+    crawl_speed: 0.08
+
+    #step
+    # move_step_size: 0.330          # 13 inches in metres
+    move_step_size: 0.203          # 8 inches in metres vijiesh
+    step_realign_angle_kp: 0.5
+    step_realign_dist_kp:    1.8
+    step_realign_heading_kp: 1.0
+
+    # ── Corner turn ───────────────────────────────────────────────────────────────
+    corner_turn_segments:    2      # N=1 single sweep, N=2 splits with swatch pause
+    corner_turn_speed:       0.15    # rad/s
+    corner_turn_tolerance:   1.0    # degrees — completion threshold per segment
+    corner_swatch_pause_s:   2.0    # seconds pause between segments (N>1 only)
+    corner_fault_timeout_s:  10.0   # seconds CRITICAL collision before FAULT
+    corner_turn_kp: 1.2
+
+    external_reacquire_dist: 0.8
+    external_reacquire_speed: 0.1
+    external_turn_mode: arc
+    external_arc_radius: 0.8

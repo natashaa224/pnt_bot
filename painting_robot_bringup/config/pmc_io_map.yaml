@@ -1,0 +1,57 @@
+# pmc_io_map.yaml
+# Single source of truth for PMC digital I/O bit assignments.
+# The BRIDGE reads this and does ALL decode/encode; safety_node / FSM / executor
+# speak only in logical signal names on static topics and never touch bits.
+#
+# When PMC wiring changes, edit ONLY this file — no node code changes.
+#
+#   inputs : logical_name -> {bit, active_low, enabled}
+#            bit        = which bit of di_raw (empirically mapped, see table below)
+#            active_low = true  -> asserted when the bit reads 0
+#            enabled    = false -> bridge always reports this signal as False
+#   outputs: logical_name -> {bit, type, enabled}
+#
+# ── PHYSICAL DI TERMINAL -> di_raw BIT (measured, each pulled high alone) ──────
+#   DI0->DEAD (no response when toggled — unused; SSR_status moved to PIO)
+#   DI1->bit5(=32)  DI2->bit4(=16)  DI3->bit2(=4)   DI4->bit1(=2)
+#   DI5->bit0(=1)   DI6->bit7(=128) DI7->bit6(=64)
+#   (di_raw bit3 is DI0's line — currently dead, do not assign signals to it)
+# The terminal order is scrambled vs bit order — the map absorbs it.
+#
+# ── SIGNAL -> PHYSICAL DI (final wiring) -> di_raw BIT ─────────────────────────
+#   estop        DI3 -> bit2    (active-low: raw=4 idle, raw=0 pressed)
+#   auto_manual  DI1 -> bit5
+#   pause_resume DI2 -> bit4
+#   on_off       DI4 -> bit1
+#   emg_limits   DI5 -> bit0
+#   lower_limit  DI6 -> bit7
+#   paint_level  DI7 -> bit6
+#   SSR_status   PIO -> (programmable DIO input — not yet exposed by PMC firmware)
+#
+# NOTE: hardware EMG chain (estop, emg_limits, lower_limit) trips the safety
+# relay in HARDWARE. SBC only MONITORS these for logging / flags / tower / FSM.
+
+pmc_io:
+
+  digital_inputs:
+    estop:           {bit: 2, active_low: true,  enabled: true}   # DI3
+    emg_limits:      {bit: 0, active_low: false, enabled: true}   # DI5
+    lower_limit:     {bit: 7, active_low: false, enabled: true}   # DI6
+    paint_level_ok:  {bit: 6, active_low: false, enabled: true}   # DI7
+    auto_manual:     {bit: 5, active_low: false, enabled: true}   # DI1  (FSM/teleop)
+    pause_resume:    {bit: 4, active_low: false, enabled: true}  # DI2  (FSM, not safety)
+    on_off:          {bit: 1, active_low: false, enabled: true}   # DI4  (master)
+    # ── not wired / not yet available ────────────────────────────────────────
+    relay_status:    {bit: 3, active_low: false, enabled: false}  # SSR on PIO — firmware TODO
+    ceiling_detect:  {bit: 3, active_low: false, enabled: false}  # not wired (bit3=dead DI0)
+    upper_limit:     {bit: 3, active_low: false, enabled: false}  # not wired (bit3=dead DI0)
+
+  digital_outputs:
+    # type: 'do' -> standard DO word ; 'pio' -> programmable DIO output word
+    safety_relay:    {bit: 1, type: do, enabled: true}    # Relay_e — safety_node owns
+    solenoid:        {bit: 2, type: do, enabled: true}    # Sol'n  — CONFIRMED
+    tower_green:     {bit: 3, type: do, enabled: true}    # T_G
+    tower_amber:     {bit: 4, type: do, enabled: true}    # T_A
+    tower_red:       {bit: 5, type: do, enabled: true}    # T_R
+    buzzer:          {bit: 6, type: do, enabled: true}    # T_Buzz
+    # main_contactor_k1 (DO0) deliberately ABSENT — never commanded (kills SBC)
