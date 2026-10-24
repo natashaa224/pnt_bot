@@ -94,12 +94,15 @@ class EnvMonitoringV2(Node):
         # is corrected by reversing before the turn. Larger overshoots are left
         # alone (warned) rather than reversed blindly - lidar is blind behind.
         self.declare_parameter('internal_max_backup', 0.30)
+        # An INTERNAL candidate this close (odom travel, m) after a BUMPOUT was seen is
+        # treated as that bump's front face and deferred until the bump latches.
+        self.declare_parameter('bump_defer_internal_m', 1.50)
         self.declare_parameter('front_cone_half_deg',    15.0)  # +/- arc for the cheap front-wall read
         self.declare_parameter('min_valid_range',        0.05)
         self.declare_parameter('enable_internal', True)
         self.declare_parameter('enable_external', True)
         self.declare_parameter('enable_bumpout',  False)
-        self.declare_parameter('bumpout_max_depth', 0.80)  # env2 policy; YAML-overridable
+        self.declare_parameter('bumpout_max_depth', 1.20)  # env2 policy; YAML-overridable (sim-verified 0.7-1.2 m)
         # -- external corner (LiDAR frame, all metres) ------------------------
         # Latch window on the vertex's lateral (forward |x|) distance at the edge
         # read. LOWER bound > one strip so there's ALWAYS a real approach step
@@ -168,6 +171,7 @@ class EnvMonitoringV2(Node):
         self.internal_trigger_turnaxis = g('internal_trigger_turnaxis').value
         self.internal_trigger  = self.internal_trigger_turnaxis - self.lidar_offset_x
         self.internal_max_backup = g('internal_max_backup').value
+        self.bump_defer_internal = g('bump_defer_internal_m').value
         self.cone_half         = g('front_cone_half_deg').value
         self.min_valid         = g('min_valid_range').value
         self.enable_internal   = g('enable_internal').value
@@ -226,6 +230,9 @@ class EnvMonitoringV2(Node):
         self._bump_trigger_axis = None           # axis distance BEFORE V1 from planner
         self._bump_depth = None
         self._bump_params_published = False
+        # last odom position where a BUMPOUT was seen (even outside the nav ROI);
+        # used to stop a pillar/box front face being latched as a room corner.
+        self._bump_seen_odom = None
 
         # -- external-corner anchor (odom frame) -------------------------------
         # Vertex in ODOM at the latest edge re-anchor. The stepped approach
@@ -394,6 +401,7 @@ class EnvMonitoringV2(Node):
         self._bump_trigger_axis = None
         self._bump_depth = None
         self._bump_params_published = False
+        self._bump_seen_odom = None
         # external
         self._ext_vertex_odom = None
         self._ext_abort = False
@@ -555,6 +563,9 @@ class EnvMonitoringV2(Node):
         if top is None:
             return
 
+        if ttype == 'BUMPOUT':
+            self._bump_seen_odom = (self._odom_x, self._odom_y)
+
         # Front-fit indices belong to this scan's dbg, so compute the internal
         # front-wall distance immediately from the same detector result.
         front = self._event_front_dist(top, dbg)
@@ -580,6 +591,15 @@ class EnvMonitoringV2(Node):
             return
         if front <= 0.0 or front > self.internal_approach:
             return
+        if self._bump_seen_odom is not None and self.bump_defer_internal > 0.0:
+            trav = math.hypot(self._odom_x - self._bump_seen_odom[0],
+                              self._odom_y - self._bump_seen_odom[1])
+            if trav <= self.bump_defer_internal:
+                self.get_logger().info(
+                    f'[ENV] INTERNAL deferred - BUMPOUT seen {trav:.2f}m ago, '
+                    f'front face is probably that bump (waiting for it to latch)',
+                    throttle_duration_sec=1.0)
+                return
         angle = self._snap_angle(float(ev.get("angle_deg", 90.0)))
         rad   = math.copysign(math.radians(angle), ev.get("radian_diff", 1.0))
         self._latched = True
