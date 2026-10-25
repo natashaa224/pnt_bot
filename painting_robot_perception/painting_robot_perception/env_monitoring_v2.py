@@ -93,10 +93,14 @@ class EnvMonitoringV2(Node):
         # Largest overshoot (robot closer to the front wall than the trigger) that
         # is corrected by reversing before the turn. Larger overshoots are left
         # alone (warned) rather than reversed blindly - lidar is blind behind.
-        self.declare_parameter('internal_max_backup', 0.30)
+        self.declare_parameter('internal_max_backup', 0.60)
         # An INTERNAL candidate this close (odom travel, m) after a BUMPOUT was seen is
         # treated as that bump's front face and deferred until the bump latches.
         self.declare_parameter('bump_defer_internal_m', 1.50)
+        # SUCKIN (shallow recess, depth <= 0.60 m) has no recipe in this build. When True it is
+        # run as its first corner (EXTERNAL at V1); the INTERNAL return corner is then picked
+        # up reactively, exactly like a deep (> 0.60 m) recess.
+        self.declare_parameter('suckin_as_external', True)
         self.declare_parameter('front_cone_half_deg',    15.0)  # +/- arc for the cheap front-wall read
         self.declare_parameter('min_valid_range',        0.05)
         self.declare_parameter('enable_internal', True)
@@ -172,6 +176,7 @@ class EnvMonitoringV2(Node):
         self.internal_trigger  = self.internal_trigger_turnaxis - self.lidar_offset_x
         self.internal_max_backup = g('internal_max_backup').value
         self.bump_defer_internal = g('bump_defer_internal_m').value
+        self.suckin_as_external = g('suckin_as_external').value
         self.cone_half         = g('front_cone_half_deg').value
         self.min_valid         = g('min_valid_range').value
         self.enable_internal   = g('enable_internal').value
@@ -576,6 +581,13 @@ class EnvMonitoringV2(Node):
             self._latch_external(top)
         elif ttype == 'BUMPOUT' and self.enable_bumpout:
             self._latch_bumpout(top)
+        elif ttype == 'SUCKIN' and self.suckin_as_external and self.enable_external:
+            v1 = top.get("external_vertex", top["vertex"])
+            self.get_logger().info(
+                f'[ENV] SUCKIN depth={top.get("depth", 0.0):.2f}m has no recipe - '
+                f'running it as EXTERNAL at V1=({v1[0]:.2f},{v1[1]:.2f})',
+                throttle_duration_sec=2.0)
+            self._latch_external({"vertex": np.asarray(v1, float)})
         else:
             self.get_logger().info(
                 f'[ENV] {ttype} detected but execution disabled this build - ignoring',

@@ -1,0 +1,97 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="bump_room_10x8">
+
+    <include><uri>model://ground_plane</uri></include>
+    <include><uri>model://sun</uri></include>
+
+    <gui>
+      <camera name="user_camera">
+        <pose>5.0 -4.0 17 0 1.5708 0</pose>
+        <projection_type>orthographic</projection_type>
+      </camera>
+    </gui>
+
+    <!--
+      Closed 10 m x 8 m room with variable-depth bump-outs and gapped pillars.
+      Origin = interior top-left corner, X right, Y down (negative).
+      Suggested spawn (wall 0.77 m from the lidar, same as earlier worlds):
+        spawn_x:=9.093 spawn_y:=-7.3 spawn_yaw:=1.5708   (east wall, facing north)
+    -->
+    <model name="bump_room_10x8_walls">
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+      <link name="link">
+
+        <!-- Room walls: interior x 0..10, y -8..0 (10 m x 8 m) -->
+        <visual name="v_wall_east"><pose>10.075 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 8.3 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_wall_east"><pose>10.075 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 8.3 3.0</size></box></geometry>
+        </collision>
+        <visual name="v_wall_west"><pose>-0.075 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 8.3 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_wall_west"><pose>-0.075 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.15 8.3 3.0</size></box></geometry>
+        </collision>
+        <visual name="v_wall_north"><pose>5.0 0.075 1.5 0 0 0</pose>
+          <geometry><box><size>10.3 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_wall_north"><pose>5.0 0.075 1.5 0 0 0</pose>
+          <geometry><box><size>10.3 0.15 3.0</size></box></geometry>
+        </collision>
+        <visual name="v_wall_south"><pose>5.0 -8.075 1.5 0 0 0</pose>
+          <geometry><box><size>10.3 0.15 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_wall_south"><pose>5.0 -8.075 1.5 0 0 0</pose>
+          <geometry><box><size>10.3 0.15 3.0</size></box></geometry>
+        </collision>
+
+        <!-- Robot travels counter-clockwise with the wall on its RIGHT: east wall N-bound, north wall W-bound, west wall S-bound, south wall E-bound -->
+        <!-- EAST wall: flush bump-out, depth 0.5 m x 1.0 m wide -->
+        <visual name="v_east_bump_0p5"><pose>9.75 -5.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.5 1.0 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_east_bump_0p5"><pose>9.75 -5.0 1.5 0 0 0</pose>
+          <geometry><box><size>0.5 1.0 3.0</size></box></geometry>
+        </collision>
+        <!-- NORTH wall: pillar (0.90 x 0.46 m) with 0.24 m gap to the wall, then flush bump-out depth 1.0 m -->
+        <visual name="v_north_pillar"><pose>7.0 -0.47 1.5 0 0 0</pose>
+          <geometry><box><size>0.9 0.46 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_north_pillar"><pose>7.0 -0.47 1.5 0 0 0</pose>
+          <geometry><box><size>0.9 0.46 3.0</size></box></geometry>
+        </collision>
+        <visual name="v_north_bump_1p0"><pose>3.5 -0.5 1.5 0 0 0</pose>
+          <geometry><box><size>1.0 1.0 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_north_bump_1p0"><pose>3.5 -0.5 1.5 0 0 0</pose>
+          <geometry><box><size>1.0 1.0 3.0</size></box></geometry>
+        </collision>
+        <!-- WEST wall: flush bump-out, depth 1.2 m x 1.0 m wide -->
+        <visual name="v_west_bump_1p2"><pose>0.6 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>1.2 1.0 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_west_bump_1p2"><pose>0.6 -4.0 1.5 0 0 0</pose>
+          <geometry><box><size>1.2 1.0 3.0</size></box></geometry>
+        </collision>
+        <!-- SOUTH wall: pillar with 0.24 m gap, then flush bump-out depth 0.8 m -->
+        <visual name="v_south_pillar"><pose>3.0 -7.53 1.5 0 0 0</pose>
+          <geometry><box><size>0.9 0.46 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_south_pillar"><pose>3.0 -7.53 1.5 0 0 0</pose>
+          <geometry><box><size>0.9 0.46 3.0</size></box></geometry>
+        </collision>
+        <visual name="v_south_bump_0p8"><pose>6.5 -7.6 1.5 0 0 0</pose>
+          <geometry><box><size>1.0 0.8 3.0</size></box></geometry>
+        </visual>
+        <collision name="c_south_bump_0p8"><pose>6.5 -7.6 1.5 0 0 0</pose>
+          <geometry><box><size>1.0 0.8 3.0</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+  </world>
+</sdf>
