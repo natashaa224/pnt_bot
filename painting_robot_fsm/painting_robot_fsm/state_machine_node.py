@@ -110,6 +110,17 @@ class StateMachineNode(Node):
         self._head_off = (self.get_parameter('spray_head_offset_x').value,
                           self.get_parameter('spray_head_offset_y').value)
         self._last_stroke_head = None
+        # Gate mode: 'pose' = skip unless the robot translated >= stroke_min_robot_travel_m
+        # OR rotated >= stroke_min_rotation_deg since the last stroke (robot centre, raw odom);
+        # 'head' = the spray-head-travel test above. 9 deg ~ 0.05 m of head sweep at 0.312 m offset;
+        # a smaller value would repaint on small align corrections (~4 deg seen after corners).
+        self.declare_parameter('stroke_gate_mode', 'pose')
+        self.declare_parameter('stroke_min_robot_travel_m', 0.05)
+        self.declare_parameter('stroke_min_rotation_deg', 9.0)
+        self.stroke_gate_mode = self.get_parameter('stroke_gate_mode').value
+        self.stroke_min_robot_travel = self.get_parameter('stroke_min_robot_travel_m').value
+        self.stroke_min_rotation = math.radians(self.get_parameter('stroke_min_rotation_deg').value)
+        self._last_stroke_pose = None
 
         # -- Subscriptions -----------------------------------------------------
  
@@ -389,16 +400,24 @@ class StateMachineNode(Node):
         return (c.get('raw_odom_x', 0.0) + math.cos(yaw) * ox - math.sin(yaw) * oy,
                 c.get('raw_odom_y', 0.0) + math.sin(yaw) * ox + math.cos(yaw) * oy)
 
+    def _robot_pose(self):
+        c = self.fsm_context
+        return (c.get('raw_odom_x', 0.0), c.get('raw_odom_y', 0.0), c.get('raw_odom_yaw', 0.0))
+
     def note_stroke_started(self):
         self._last_stroke_head = self.spray_head_xy()
+        self._last_stroke_pose = self._robot_pose()
 
     def reset_stroke_gate(self):
         """Forget the last stroke position (job start, HOLD, FAULT): the next
         stroke must always paint."""
         self._last_stroke_head = None
+        self._last_stroke_pose = None
 
     def stroke_is_redundant(self):
-        """True if the spray head has not moved far enough since the last stroke."""
+        """True if the last stroke already covers this pose (see stroke_gate_mode)."""
+        if self.stroke_gate_mode == 'pose':
+            return self._stroke_redundant_pose()
         if self._last_stroke_head is None:
             return False
         hx, hy = self.spray_head_xy()
@@ -410,6 +429,24 @@ class StateMachineNode(Node):
             return True
         self.get_logger().info(
             f'[FSM] stroke gate: spray head moved {moved:.3f}m since the last stroke - painting')
+        return False
+
+    def _stroke_redundant_pose(self):
+        if self._last_stroke_pose is None:
+            return False
+        x, y, yaw = self._robot_pose()
+        lx, ly, lyaw = self._last_stroke_pose
+        moved = math.hypot(x - lx, y - ly)
+        turned = abs(math.atan2(math.sin(yaw - lyaw), math.cos(yaw - lyaw)))   # wrapped to [0, pi]
+        if moved < self.stroke_min_robot_travel and turned < self.stroke_min_rotation:
+            self.get_logger().info(
+                f'[FSM] stroke SKIPPED - robot moved only {moved:.3f}m (< {self.stroke_min_robot_travel:.2f}m) '
+                f'and turned only {math.degrees(turned):.1f}deg (< {math.degrees(self.stroke_min_rotation):.0f}deg) '
+                f'since the last stroke')
+            return True
+        self.get_logger().info(
+            f'[FSM] stroke gate: robot moved {moved:.3f}m, turned {math.degrees(turned):.1f}deg '
+            f'since the last stroke - painting')
         return False
 
     def _clear_transient_state(self):
