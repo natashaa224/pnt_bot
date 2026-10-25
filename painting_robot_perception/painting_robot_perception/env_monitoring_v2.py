@@ -106,7 +106,13 @@ class EnvMonitoringV2(Node):
         self.declare_parameter('enable_internal', True)
         self.declare_parameter('enable_external', True)
         self.declare_parameter('enable_bumpout',  False)
-        self.declare_parameter('bumpout_max_depth', 1.20)  # env2 policy; YAML-overridable (sim-verified 0.7-1.2 m)
+        # Deepest bump-out (m) env2 will run as a compound bump. The robot works well on every
+        # depth we have checked in sim: 0.5 m (shallow, via suckin_as_external) and 0.7 / 0.8 / 0.9 /
+        # 1.0 / 1.1 / 1.2 m (1.4 m did not latch as a bump). Raise this only after re-checking in sim.
+        # Note: geometry_utils.BUMP_MAX_DEPTH (0.8) is a separate, detector-side switch - bumps up to
+        # 0.8 m are found from two visible corners, deeper ones from corner + face end-edge (uncapped
+        # there). Both paths were exercised by the checks above. YAML-overridable.
+        self.declare_parameter('bumpout_max_depth', 1.20)
         # -- external corner (LiDAR frame, all metres) ------------------------
         # Latch window on the vertex's lateral (forward |x|) distance at the edge
         # read. LOWER bound > one strip so there's ALWAYS a real approach step
