@@ -122,6 +122,18 @@ class StateMachineNode(Node):
         self.stroke_min_rotation = math.radians(self.get_parameter('stroke_min_rotation_deg').value)
         self._last_stroke_pose = None
 
+        # -- POST-EXTERNAL-CORNER DISTANCE RECOVERY ------------------------------
+        # After an external-only turn the robot can come out 0.07-0.15 m too far from the new
+        # wall (real robot). Instead of faulting on WALL_DIST, WALL_ALIGN / WALL_FOLLOW accept up
+        # to post_corner_dist_tol_m for at most post_corner_max_steps strips, skip strokes while
+        # the error is still above dist_tolerance, and fault if it does not close. 0 disables it.
+        self.declare_parameter('post_corner_dist_tol_m', 0.20)
+        self.declare_parameter('post_corner_max_steps', 8)
+        self.declare_parameter('post_corner_angle_tol_rad', 0.035)   # ~2 deg: align is angle-only here
+        self.post_corner_dist_tol = self.get_parameter('post_corner_dist_tol_m').value
+        self.post_corner_max_steps = int(self.get_parameter('post_corner_max_steps').value)
+        self.post_corner_angle_tol = self.get_parameter('post_corner_angle_tol_rad').value
+
         # -- Subscriptions -----------------------------------------------------
  
         self.create_subscription(SafetyCommand, '/safety_command',self.safety_cmd_cb, 10)
@@ -464,6 +476,8 @@ class StateMachineNode(Node):
         ctx['stroke_complete']       = False
         ctx['distance_since_stroke'] = 0.0
         ctx['_paint_caller']         = None
+        ctx['_dist_recovery']        = False
+        ctx['_dist_recovery_steps']  = 0
         ctx['wall_lost']             = False
         self._reported.clear()       # re-arm /fault_report edges for next run
         # add the ones the old block missed but _clear_fault_context had:

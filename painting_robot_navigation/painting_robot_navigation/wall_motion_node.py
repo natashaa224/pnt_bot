@@ -47,6 +47,10 @@ class WallMotionNode(Node):
         self.declare_parameter('step_realign_angle_kp', 0.5)  # softer gain during step
         self.declare_parameter('step_realign_heading_kp', 1.0)
         self.declare_parameter('follow_dist_kp', 0.9)
+        # Largest approach angle the wall-follow distance correction may command. A big distance error
+        # (e.g. +0.17 m after an external corner on the real robot) gave atan(1.8*0.17)=17 deg, the robot
+        # turned into the wall and the lidar lost it ("Right wall - NOT DETECTED"). 0 disables the cap.
+        self.declare_parameter('max_approach_angle_deg', 10.0)
         self.declare_parameter('escalation_threshold_m', 0.045)
         self.declare_parameter('follow_heading_kp', 0.5)
 #   
@@ -72,6 +76,7 @@ class WallMotionNode(Node):
         self.strafe_thresh        = self.get_parameter('strafe_dist_threshold').value
         self.follow_heading_kp = self.get_parameter('follow_heading_kp').value
         self.follow_dist_kp = self.get_parameter('follow_dist_kp').value
+        self.max_approach = math.radians(self.get_parameter('max_approach_angle_deg').value)
         self.escalation_threshold_m = self.get_parameter('escalation_threshold_m').value
         
         self.recheck_dist_mult    = self.get_parameter('recheck_dist_tol_multiplier').value
@@ -101,6 +106,8 @@ class WallMotionNode(Node):
         # corner turn internal state
         self._corner_seg_index   = 0       # current segment (0-based)
         self._corner_start_yaw   = None    # yaw snapshot at start of each segment
+        self._int_origin_yaw     = None    # yaw at start of an INTERNAL corner (drift-free segment targets)
+        self._int_seg_target     = 0.0
         self._corner_seg_angle   = 0.0     # target angle per segment (total/N)
         self._corner_pause_start = None    # swatch pause timer
         self._corner_done        = False   # signals FSM completion
@@ -858,6 +865,8 @@ class WallMotionNode(Node):
         dist_error_corrected = self.wall_status.distance_error_corrected
 
         psi_cmd       = math.atan(kd * dist_error_corrected)
+        if self.max_approach > 0.0:
+            psi_cmd = max(-self.max_approach, min(self.max_approach, psi_cmd))
         heading_error = angle_error - psi_cmd
 
         limit = self.max_ang * (0.5 if self._strip_mode == 'STRONG' else 0.3)
@@ -993,6 +1002,7 @@ class WallMotionNode(Node):
         self.publish_stop()
         self._corner_seg_index   = 0
         self._corner_start_yaw   = None
+        self._int_origin_yaw     = None
         self._corner_pause_start = None
         self._corner_done        = False
         self._corner_turn_dir    = float(turn_direction)
@@ -1279,7 +1289,20 @@ class WallMotionNode(Node):
             return
 
         seg_angle = (self._corner_turn_angle / self._corner_segments) * self._corner_turn_dir
-        turn_done = self._do_odom_turn(seg_angle, self._corner_speed)
+        # Absolute targets: the base keeps rotating a little while the gantry strokes between
+        # segments, so a purely relative second segment would over-turn by that drift. Aim each
+        # segment at origin + (index+1)*seg_angle instead.
+        if not self._odom_turn_active:
+            if self._int_origin_yaw is None:
+                self._int_origin_yaw = self._odom_yaw
+            expected = self._int_origin_yaw + self._corner_seg_index * seg_angle
+            drift = self._angle_diff(self._odom_yaw, expected)
+            self._int_seg_target = seg_angle - drift
+            if abs(drift) > math.radians(2.0):
+                self.get_logger().info(
+                    f'[CORNER-INT] seg {self._corner_seg_index + 1}: drift {math.degrees(drift):+.1f}deg '
+                    f'since last segment, compensating -> turn {math.degrees(self._int_seg_target):.1f}deg')
+        turn_done = self._do_odom_turn(self._int_seg_target, self._corner_speed)
 
         if turn_done:
             self._corner_seg_index += 1

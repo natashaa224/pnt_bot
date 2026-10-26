@@ -142,22 +142,49 @@ class WallAlignHandler(StateHandler):
         if mid_recipe:
             self.node.clear_fault('WALL_DIST')
 
+        # Post-EXTERNAL-corner recovery: no internal corner follows (that case is mid_recipe
+        # above), so the robot is simply back on a straight wall but possibly too far out.
+        # Open a recovery window instead of faulting: align on ANGLE only, skip the stroke while
+        # the distance error is above dist_tolerance, and let WALL_FOLLOW (strong gains) close it.
+        # NOTE: env retires the corner latch ("post-turn WALL_ALIGN ... retiring spent latch") as soon
+        # as this step is entered, so latched_corner_type is already NONE here - do not test it.
+        # The queue label identifies the step; the INTERNAL-ahead case is mid_recipe above.
+        post_ext = (
+            item_now is not None
+            and getattr(item_now, 'label', '') == 'corner_align+paint'
+            and not mid_recipe
+            and self.node.post_corner_dist_tol > self.node.dist_tolerance
+        )
+        if post_ext and not context.get('_dist_recovery', False):
+            context['_dist_recovery'] = True
+            context['_dist_recovery_steps'] = 0
+        recovery = bool(context.get('_dist_recovery', False))
+        dist_err = abs(wall_status.distance_error_corrected) if wall_status is not None else 0.0
+        tol_eff = self.node.post_corner_dist_tol if recovery else self.node.dist_tolerance
+
         # Distance-error exceedance: REPORT it (safety_node decides HOLD vs
         # escalate) and HOLD in place — do NOT self-transition to FAULT, or
         # safety stays NOMINAL and RESET can't recover the FSM.
-        if (not mid_recipe and wall_status is not None
-                and abs(wall_status.distance_error_corrected) > self.node.dist_tolerance):
+        if not mid_recipe and wall_status is not None and dist_err > tol_eff:
             self.node.get_logger().error(
                 f'[FSM] WALL_ALIGN dist error '
                 f'{wall_status.distance_error_corrected:+.3f}m > tol '
-                f'{self.node.dist_tolerance:.3f}m — reporting WALL_DIST')
+                f'{tol_eff:.3f}m — reporting WALL_DIST')
             self.node.report_fault('WALL_DIST')
             return RobotState.WALL_ALIGN
         self.node.clear_fault('WALL_DIST')
 
         item = self.node.queue.current_item()
 
-        if wall_status is not None and wall_status.aligned:
+        # In recovery the detector's `aligned` also demands the distance, so use the angle alone.
+        angle_ok = (recovery and wall_status is not None
+                    and abs(wall_status.angle_error) <= self.node.post_corner_angle_tol)
+        if wall_status is not None and (wall_status.aligned or angle_ok):
+            if recovery and dist_err > self.node.dist_tolerance:
+                self.node.get_logger().warn(
+                    f'[FSM] post-corner recovery: distance error {wall_status.distance_error_corrected:+.3f}m '
+                    f'> {self.node.dist_tolerance:.2f}m - stroke SKIPPED, wall-follow will close it')
+                return RobotState.ITEM_COMPLETE
             if item and item.paints:
                 # Skip a stroke that would repaint the same wall (robot has not
                 # translated/rotated enough since the previous stroke).
@@ -188,24 +215,49 @@ class WallFollowHandler(StateHandler):
             return RobotState.WALL_FOLLOW
 
         wall_status = context.get('wall_status')
+        # Post-external-corner recovery window (see WallAlignHandler): accept a bigger distance
+        # error for a few strips, skip strokes until it is back inside dist_tolerance.
+        recovery = bool(context.get('_dist_recovery', False))
+        dist_err = abs(wall_status.distance_error_corrected) if wall_status is not None else 0.0
+        if (recovery and wall_status is not None and getattr(wall_status, 'wall_valid', True)
+                and dist_err <= self.node.dist_tolerance):
+            self.node.get_logger().info('[FSM] post-corner recovery complete - distance back inside tolerance')
+            context['_dist_recovery'] = False
+            recovery = False
+        tol_eff = self.node.post_corner_dist_tol if recovery else self.node.dist_tolerance
         # Distance-error exceedance: report + hold (see WallAlignHandler).
-        if wall_status is not None and abs(wall_status.distance_error_corrected) > self.node.dist_tolerance:
+        if wall_status is not None and dist_err > tol_eff:
             self.node.get_logger().error(
                 f'[FSM] WALL_FOLLOW dist error '
                 f'{wall_status.distance_error_corrected:+.3f}m > tol '
-                f'{self.node.dist_tolerance:.3f}m — reporting WALL_DIST')
+                f'{tol_eff:.3f}m — reporting WALL_DIST')
             self.node.report_fault('WALL_DIST')
             return RobotState.WALL_FOLLOW
         self.node.clear_fault('WALL_DIST')
 
         if context.get('corner_preempt', False) or context.get('_corner_active', False):
             context['step_complete'] = False
+            context['_dist_recovery'] = False        # a new corner recipe takes over
             return RobotState.ITEM_COMPLETE
 
         item = self.node.queue.current_item()
 
         if context.get('step_complete', False):
             context['step_complete'] = False
+            if recovery:
+                context['_dist_recovery_steps'] = context.get('_dist_recovery_steps', 0) + 1
+                if context['_dist_recovery_steps'] >= self.node.post_corner_max_steps and dist_err > self.node.dist_tolerance:
+                    self.node.get_logger().error(
+                        f'[FSM] post-corner recovery did not close the distance error in '
+                        f'{self.node.post_corner_max_steps} strips - reporting WALL_DIST')
+                    context['_dist_recovery'] = False
+                    self.node.report_fault('WALL_DIST')
+                    return RobotState.WALL_FOLLOW
+                if dist_err > self.node.dist_tolerance:
+                    self.node.get_logger().warn(
+                        f'[FSM] post-corner recovery: distance error {wall_status.distance_error_corrected:+.3f}m '
+                        f'> {self.node.dist_tolerance:.2f}m - stroke SKIPPED')
+                    return RobotState.ITEM_COMPLETE
             if item and item.paints:
                 context['_paint_caller'] = RobotState.WALL_FOLLOW
                 return RobotState.PAINT_EXECUTE
