@@ -151,7 +151,7 @@ class WallAlignHandler(StateHandler):
         # The queue label identifies the step; the INTERNAL-ahead case is mid_recipe above.
         post_ext = (
             item_now is not None
-            and getattr(item_now, 'label', '') == 'corner_align+paint'
+            and getattr(item_now, 'label', '') in ('corner_align+paint', 'bump_align', 'corner_align')
             and not mid_recipe
             and self.node.post_corner_dist_tol > self.node.dist_tolerance
         )
@@ -184,6 +184,20 @@ class WallAlignHandler(StateHandler):
                 self.node.get_logger().warn(
                     f'[FSM] post-corner recovery: distance error {wall_status.distance_error_corrected:+.3f}m '
                     f'> {self.node.dist_tolerance:.2f}m - stroke SKIPPED, wall-follow will close it')
+                return RobotState.ITEM_COMPLETE
+            # No stroke between a post-turn re-align and the following wall-follow: the corner's own
+            # per-segment strokes already covered the turn, and the next strip is painted after the
+            # first follow step. This covers the corner recipe's own align item AND the first plain
+            # 'align+paint' item of the normal block that follows it.
+            label = getattr(item, 'label', '') if item else ''
+            if label in ('corner_align+paint', 'corner_align', 'bump_align'):
+                context['_skip_next_align_stroke'] = True
+                self.node.get_logger().info(
+                    f'[FSM] post-turn re-align done ({label}) - no stroke, straight to wall-follow')
+                return RobotState.ITEM_COMPLETE
+            if label == 'align+paint' and context.pop('_skip_next_align_stroke', False):
+                self.node.get_logger().info(
+                    '[FSM] first align after a corner - stroke suppressed, straight to wall-follow')
                 return RobotState.ITEM_COMPLETE
             if item and item.paints:
                 # Skip a stroke that would repaint the same wall (robot has not
@@ -593,7 +607,14 @@ class CornerLogicHandler(StateHandler):
             # paint one segment when wall_motion reports a segment step done
             if context.get('step_complete', False):
                 context['step_complete'] = False
-                if item and item.paints:
+                # External corner, FINAL segment (step_complete arrives together with corner_turn_complete):
+                # the robot stands just past the vertex and the nozzle has no wall in front of it yet,
+                # so this stroke would spray air. Skip it; the earlier segment strokes covered the turn.
+                if (item and getattr(item, 'label', '') == 'corner_arc'
+                        and context.get('corner_turn_complete', False)):
+                    self.node.get_logger().info(
+                        '[FSM] external corner final segment - no wall in front of the nozzle, stroke suppressed')
+                elif item and item.paints:
                     context['_paint_caller'] = RobotState.CORNER_LOGIC
                     return RobotState.PAINT_EXECUTE
             if context.get('corner_turn_complete', False):

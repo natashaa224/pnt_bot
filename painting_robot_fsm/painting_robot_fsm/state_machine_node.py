@@ -478,6 +478,7 @@ class StateMachineNode(Node):
         ctx['_paint_caller']         = None
         ctx['_dist_recovery']        = False
         ctx['_dist_recovery_steps']  = 0
+        ctx['_skip_next_align_stroke'] = False
         ctx['wall_lost']             = False
         self._reported.clear()       # re-arm /fault_report edges for next run
         # add the ones the old block missed but _clear_fault_context had:
