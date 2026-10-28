@@ -16,9 +16,10 @@ Run boundaries (from RobotCommand.state edges):
   crash / Ctrl-C (no seal)      : detected + marked INCOMPLETE on next boot,
                                   lifetime reconciled from its events.jsonl
 
-Stroke      = PaintHeadStatus.head_mode rising edge into PAINTING
+Stroke      = /stroke_complete True (head_mode is never populated by the bridge)
 Tip cycle   = SprayCmd.valve_open rising edge
-Coverage    = sum over strips of (z_max - z_min) * LATERAL_STRIP_M
+Coverage    = per stroke: painted height (paint_on zones of the latest StripMap,
+              taught homing range) * LATERAL_STRIP_M. Ignored until homed.
 Errors      = online aggregate (n/sum/sumsq/max) of WallStatus dist/angle error
 
 Publishes:
@@ -29,6 +30,7 @@ Subscribes:
   /paint_head_status  (painting_robot_msgs/PaintHeadStatus)
   /spray_cmd          (painting_robot_msgs/SprayCmd)
   /strip_map          (painting_robot_msgs/StripMap)
+  /stroke_complete    (std_msgs/Bool)
   /wall_status        (painting_robot_msgs/WallStatus)
 """
 
@@ -40,6 +42,7 @@ import datetime as dt
 
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Bool
 
 from painting_robot_msgs.msg import (
     RobotCommand, PaintHeadStatus, SprayCmd, StripMap, WallStatus, JobStats,
@@ -47,7 +50,6 @@ from painting_robot_msgs.msg import (
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 LATERAL_STRIP_M   = 0.203        # 8 inch strip width
-PAINTING_MODE     = 3            # PaintMotionModes.PAINTING
 STATE_SYSCHECK    = 'SYSTEM_CHECK'
 STATE_IDLE        = 'IDLE'
 STATE_FAULT       = 'FAULT'
@@ -113,7 +115,6 @@ class LoggingNode(Node):
 
         # ── Edge trackers ─────────────────────────────────────────────────────
         self._prev_state    = STATE_IDLE
-        self._prev_painting = False
         self._prev_valve    = False
 
         # ── Latest-value caches for /job_stats ────────────────────────────────
@@ -121,6 +122,8 @@ class LoggingNode(Node):
         self.batt_soc     = 0.0
         self.batt_voltage = 0.0
         self.batt_valid   = False       # BMS node not built yet
+        self.homed        = False       # taught homing limits present (PaintHeadStatus)
+        self.cur_strip    = None        # latest StripMap seen while homed
 
         # ── Lifetime counters ─────────────────────────────────────────────────
         self.lifetime = self._load_lifetime()
@@ -133,6 +136,7 @@ class LoggingNode(Node):
         self.create_subscription(PaintHeadStatus,  '/paint_head_status', self._head_cb,  10)
         self.create_subscription(SprayCmd,         '/spray_cmd',         self._spray_cb, 10)
         self.create_subscription(StripMap,         '/strip_map',         self._strip_cb, 10)
+        self.create_subscription(Bool,             '/stroke_complete',   self._stroke_cb, 10)
         self.create_subscription(WallStatus,       '/wall_status',       self._wall_cb,  10)
 
         self._stats_pub = self.create_publisher(JobStats, '/job_stats', 10)
@@ -155,7 +159,8 @@ class LoggingNode(Node):
         self.paint_last     = None
         self.dist_err       = OnlineStat()
         self.angle_err      = OnlineStat()
-        self._seen_strips   = set()     # dedupe strips already counted for coverage
+        self.stroke_first_ts = None     # first / last stroke wall time, for active rate
+        self.stroke_last_ts  = None
 
     # ──────────────────────────────────────────────────────────────────────────
     # Lifetime store
@@ -337,12 +342,20 @@ class LoggingNode(Node):
         paint = 0.0
         if self.paint_start is not None and self.paint_last is not None:
             paint = max(0.0, self.paint_start - self.paint_last)
+        runtime = time.time() - self.run_start_ts
+        active = 0.0
+        if self.stroke_first_ts is not None and self.stroke_last_ts is not None:
+            active = self.stroke_last_ts - self.stroke_first_ts
         stats = {
             'run_number':   self.run_number,
-            'runtime_s':    time.time() - self.run_start_ts,
+            'runtime_s':    runtime,
             'strokes':      self.strokes,
             'tip_cycles':   self.tip_cycles,
             'coverage_m2':  self.coverage_m2,
+            'coverage_m2_per_hr':        (self.coverage_m2 / runtime * 3600.0) if runtime > 0 else 0.0,
+            'strokes_per_hr':            (self.strokes / runtime * 3600.0) if runtime > 0 else 0.0,
+            # first stroke -> last stroke; excludes homing / idle lead-in. Needs >=2 strokes.
+            'coverage_m2_per_hr_active': (self.coverage_m2 / active * 3600.0) if active > 0 else 0.0,
             'paint_consumed': paint,
             'strip_z_min':  None if self.strip_z_min ==  math.inf else self.strip_z_min,
             'strip_z_max':  None if self.strip_z_max == -math.inf else self.strip_z_max,
@@ -376,11 +389,9 @@ class LoggingNode(Node):
             self._prev_state = state
 
     def _head_cb(self, msg):
-        painting = (msg.head_mode.value == PAINTING_MODE)
-        if painting and not self._prev_painting and self.run_active:
-            self.strokes += 1
-            self._event('stroke', z=msg.z_actual_pos_mm)
-        self._prev_painting = painting
+        # Homed = taught limits valid (same test paint_planner_node uses).
+        self.homed = bool(msg.limit_lower_z
+                          and msg.z_soft_upper_mm > msg.z_soft_lower_mm)
 
         if self.run_active:
             pl = float(msg.paint_level)
@@ -395,19 +406,42 @@ class LoggingNode(Node):
         self._prev_valve = bool(msg.valve_open)
 
     def _strip_cb(self, msg):
+        # Cache only. Before homing the planner publishes a fallback range
+        # (launch-file guess), which must never reach coverage or the envelope.
+        if not self.homed:
+            return
+        self.cur_strip = msg
         if not self.run_active:
             return
-        zmin = float(msg.strip_z_min)
-        zmax = float(msg.strip_z_max)
-        self.strip_z_min = min(self.strip_z_min, zmin)
-        self.strip_z_max = max(self.strip_z_max, zmax)
-        # coverage: one strip contributes span * lateral width, dedup by z-key
-        key = (round(zmin, 3), round(zmax, 3))
-        if key not in self._seen_strips:
-            self._seen_strips.add(key)
-            area = max(0.0, zmax - zmin) * LATERAL_STRIP_M
-            self.coverage_m2 += area
-            self._event('coverage', area=area, z_min=zmin, z_max=zmax)
+        self.strip_z_min = min(self.strip_z_min, float(msg.strip_z_min))
+        self.strip_z_max = max(self.strip_z_max, float(msg.strip_z_max))
+
+    @staticmethod
+    def _painted_span(strip):
+        """Height (m) of the strip's paint_on zones; whole span if no zones."""
+        zs, ze, on = list(strip.z_start), list(strip.z_end), list(strip.paint_on)
+        if not zs or not (len(zs) == len(ze) == len(on)):
+            return max(0.0, float(strip.strip_z_max) - float(strip.strip_z_min))
+        return sum(max(0.0, e - s) for s, e, p in zip(zs, ze, on) if p)
+
+    def _stroke_cb(self, msg):
+        if not msg.data or not self.run_active:
+            return
+        strip = self.cur_strip
+        if strip is None:
+            self.get_logger().warn('stroke with no homed StripMap - coverage not counted')
+            area, zmin, zmax = 0.0, None, None
+        else:
+            area = self._painted_span(strip) * LATERAL_STRIP_M
+            zmin, zmax = float(strip.strip_z_min), float(strip.strip_z_max)
+        now = time.time()
+        if self.stroke_first_ts is None:
+            self.stroke_first_ts = now
+        self.stroke_last_ts = now
+        self.strokes += 1
+        self.coverage_m2 += area
+        self._event('stroke')
+        self._event('coverage', area=area, z_min=zmin, z_max=zmax)
 
     def _wall_cb(self, msg):
         if not self.run_active:

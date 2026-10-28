@@ -615,8 +615,12 @@ class CornerLogicHandler(StateHandler):
                     self.node.get_logger().info(
                         '[FSM] external corner final segment - no wall in front of the nozzle, stroke suppressed')
                 elif item and item.paints:
-                    context['_paint_caller'] = RobotState.CORNER_LOGIC
-                    return RobotState.PAINT_EXECUTE
+                    # Stroke gate (same rule as WALL_ALIGN): the turn-entry step_complete arrives with a
+                    # 0 m crawl while the robot is still where the approach stroke already painted -
+                    # a second stroke there is a duplicate. Segment-end strokes pass (robot turned >= 9 deg).
+                    if not self.node.stroke_is_redundant():
+                        context['_paint_caller'] = RobotState.CORNER_LOGIC
+                        return RobotState.PAINT_EXECUTE
             if context.get('corner_turn_complete', False):
                 context['corner_turn_complete'] = False
                 self.node.get_logger().info(f'[FSM] {phase} complete')
