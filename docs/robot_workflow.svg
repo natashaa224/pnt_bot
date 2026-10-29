@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="title description">
+  <title id="title">Painting robot workflow</title>
+  <desc id="description">Flowchart of startup, normal wall painting, internal and external corner handling, bump-out handling, and safety recovery.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M1,1 L11,6 L1,11 Z" fill="#526579"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M1,1 L11,6 L1,11 Z" fill="#2878b5"/>
+    </marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #172b3a; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 17px; fill: #536779; }
+      .section { font-size: 20px; font-weight: 700; }
+      .label { font-size: 17px; font-weight: 700; }
+      .body { font-size: 15px; }
+      .small { font-size: 14px; fill: #43586b; }
+      .node { stroke-width: 2; rx: 15; }
+      .arrow { fill: none; stroke: #526579; stroke-width: 3; marker-end: url(#arrow); }
+      .branch { fill: none; stroke: #2878b5; stroke-width: 3; marker-end: url(#arrowBlue); }
+      .dashed { stroke-dasharray: 8 7; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1200" fill="#f5f8fb"/>
+  <text x="800" y="58" text-anchor="middle" class="title">Painting Robot — Workflow at a Glance</text>
+  <text x="800" y="88" text-anchor="middle" class="subtitle">Perception detects the wall and geometry; the FSM queues motion; navigation drives; the paint executor performs strokes.</text>
+
+  <!-- Startup and normal painting -->
+  <rect x="50" y="120" width="1500" height="305" rx="22" fill="#ffffff" stroke="#d7e1ea" stroke-width="2"/>
+  <text x="80" y="158" class="section">1. Start and paint along a wall</text>
+
+  <rect class="node" x="85" y="190" width="190" height="82" fill="#eaf1f7" stroke="#8da5b8"/>
+  <text x="180" y="222" text-anchor="middle" class="label">IDLE</text>
+  <text x="180" y="247" text-anchor="middle" class="body">Wait for START</text>
+
+  <rect class="node" x="335" y="190" width="220" height="82" fill="#eaf1f7" stroke="#8da5b8"/>
+  <text x="445" y="222" text-anchor="middle" class="label">SYSTEM_CHECK</text>
+  <text x="445" y="247" text-anchor="middle" class="body">Wait for homing</text>
+
+  <rect class="node" x="615" y="190" width="220" height="82" fill="#e7f3ff" stroke="#6b9fc8"/>
+  <text x="725" y="222" text-anchor="middle" class="label">WALL_ALIGN</text>
+  <text x="725" y="247" text-anchor="middle" class="body">Correct angle; paint*</text>
+
+  <rect class="node" x="895" y="190" width="220" height="82" fill="#e7f3ff" stroke="#6b9fc8"/>
+  <text x="1005" y="222" text-anchor="middle" class="label">WALL_FOLLOW</text>
+  <text x="1005" y="247" text-anchor="middle" class="body">Move one strip forward</text>
+
+  <rect class="node" x="1180" y="190" width="300" height="82" fill="#e8f6f0" stroke="#68a78c"/>
+  <text x="1330" y="222" text-anchor="middle" class="label">Repeat strip cycle</text>
+  <text x="1330" y="247" text-anchor="middle" class="body">Align and paint next strip</text>
+
+  <path class="arrow" d="M275 231 H325"/>
+  <path class="arrow" d="M555 231 H605"/>
+  <path class="arrow" d="M835 231 H885"/>
+  <path class="arrow" d="M1115 231 H1170"/>
+  <path class="arrow" d="M1330 272 V315 H725 V282"/>
+  <text x="1030" y="307" text-anchor="middle" class="small">next strip</text>
+
+  <rect x="85" y="340" width="1395" height="54" rx="12" fill="#f2f7fb" stroke="#c7d7e4"/>
+  <text x="105" y="363" class="body">* A stroke is skipped when the robot has not translated or rotated enough since its previous stroke.</text>
+  <text x="105" y="384" class="small">A corner detected by perception is inserted into the motion queue after the current action.</text>
+
+  <!-- Corner routing -->
+  <rect x="50" y="455" width="1500" height="445" rx="22" fill="#ffffff" stroke="#d7e1ea" stroke-width="2"/>
+  <text x="80" y="493" class="section">2. When perception detects a corner or bump-out</text>
+  <rect class="node" x="85" y="535" width="250" height="86" fill="#fff5df" stroke="#d6aa52"/>
+  <text x="210" y="568" text-anchor="middle" class="label">Corner / shape detected</text>
+  <text x="210" y="593" text-anchor="middle" class="body">Latch geometry + choose recipe</text>
+
+  <path class="branch" d="M335 578 H385 V552 H420"/>
+  <path class="branch" d="M385 578 V655 H420"/>
+  <path class="branch" d="M385 655 V778 H420"/>
+
+  <rect class="node" x="425" y="515" width="300" height="110" fill="#f1ecff" stroke="#9c87c8"/>
+  <text x="575" y="546" text-anchor="middle" class="label">Internal corner</text>
+  <text x="575" y="571" text-anchor="middle" class="body">Chunked approach (paint eligible chunks)</text>
+  <text x="575" y="596" text-anchor="middle" class="body">→ verify front distance → pivot → align</text>
+
+  <rect class="node" x="425" y="635" width="300" height="110" fill="#e9f4ff" stroke="#6b9fc8"/>
+  <text x="575" y="666" text-anchor="middle" class="label">External corner</text>
+  <text x="575" y="691" text-anchor="middle" class="body">Approach → arc around vertex</text>
+  <text x="575" y="716" text-anchor="middle" class="body">→ align with new wall</text>
+
+  <rect class="node" x="425" y="755" width="300" height="110" fill="#e9f7f1" stroke="#68a78c"/>
+  <text x="575" y="786" text-anchor="middle" class="label">Bump-out</text>
+  <text x="575" y="811" text-anchor="middle" class="body">Approach → outward arc → return arc</text>
+  <text x="575" y="836" text-anchor="middle" class="body">→ align; depth is bounded</text>
+
+  <rect x="810" y="535" width="315" height="125" rx="14" fill="#f7f9fb" stroke="#b8c5d0" stroke-width="2"/>
+  <text x="967" y="568" text-anchor="middle" class="label">Shallow recess (SUCKIN)</text>
+  <text x="967" y="596" text-anchor="middle" class="body">No separate recipe in this build:</text>
+  <text x="967" y="621" text-anchor="middle" class="body">treated as an external corner</text>
+
+  <rect x="810" y="690" width="315" height="140" rx="14" fill="#f7f9fb" stroke="#b8c5d0" stroke-width="2"/>
+  <text x="967" y="724" text-anchor="middle" class="label">After the maneuver</text>
+  <text x="967" y="752" text-anchor="middle" class="body">Re-align to the wall; close any</text>
+  <text x="967" y="777" text-anchor="middle" class="body">distance error in a bounded window.</text>
+  <text x="967" y="802" text-anchor="middle" class="small">Skip paint while too far out of position.</text>
+
+  <rect x="1200" y="590" width="285" height="150" rx="17" fill="#e8f6f0" stroke="#68a78c" stroke-width="2"/>
+  <text x="1342" y="626" text-anchor="middle" class="label">Return to paint loop</text>
+  <text x="1342" y="655" text-anchor="middle" class="body">Resume wall alignment</text>
+  <text x="1342" y="681" text-anchor="middle" class="body">and strip-by-strip painting</text>
+  <text x="1342" y="713" text-anchor="middle" class="small">Queue resumes normal recipe</text>
+
+  <path class="branch" d="M725 570 H790 V735 H800"/>
+  <path class="branch" d="M725 690 H790"/>
+  <path class="branch" d="M725 810 H790"/>
+  <path class="arrow" d="M1125 760 H1190"/>
+  <path class="arrow dashed" d="M967 660 V680"/>
+
+  <!-- Safety -->
+  <rect x="50" y="930" width="1500" height="225" rx="22" fill="#ffffff" stroke="#d7e1ea" stroke-width="2"/>
+  <text x="80" y="968" class="section">3. Safety and recovery paths (can interrupt normal work)</text>
+
+  <rect class="node" x="105" y="995" width="340" height="110" fill="#fff4e5" stroke="#d6aa52"/>
+  <text x="275" y="1028" text-anchor="middle" class="label">Recoverable HOLD</text>
+  <text x="275" y="1055" text-anchor="middle" class="body">Stop and preserve queue; RESUME retries item</text>
+  <text x="275" y="1080" text-anchor="middle" class="small">Mid-corner hold waits for item boundary</text>
+
+  <rect class="node" x="630" y="995" width="340" height="110" fill="#ffeded" stroke="#d17676"/>
+  <text x="800" y="1028" text-anchor="middle" class="label">FAULT / ESTOP</text>
+  <text x="800" y="1055" text-anchor="middle" class="body">Stop and flush queue</text>
+  <text x="800" y="1080" text-anchor="middle" class="small">After reset, return to IDLE; start job again</text>
+
+  <rect x="1120" y="995" width="360" height="110" rx="14" fill="#f7f9fb" stroke="#b8c5d0" stroke-width="2"/>
+  <text x="1300" y="1028" text-anchor="middle" class="label">Typical triggers</text>
+  <text x="1300" y="1055" text-anchor="middle" class="body">Wall lost • wall too far away • unsafe condition</text>
+  <text x="1300" y="1080" text-anchor="middle" class="small">Safety system chooses HOLD vs FAULT/ESTOP</text>
+
+  <path class="arrow" d="M1210 1105 V1120 H800 V1115"/>
+  <path class="arrow" d="M1390 1105 V1135 H275 V1115"/>
+  <text x="800" y="1180" text-anchor="middle" class="small">Conceptual overview of the current code paths; exact thresholds and enabled behaviors depend on runtime configuration.</text>
+</svg>
