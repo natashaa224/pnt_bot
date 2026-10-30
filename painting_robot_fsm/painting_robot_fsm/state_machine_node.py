@@ -130,6 +130,8 @@ class StateMachineNode(Node):
         self.declare_parameter('post_corner_dist_tol_m', 0.20)
         self.declare_parameter('post_corner_max_steps', 8)
         self.declare_parameter('post_corner_angle_tol_rad', 0.035)   # ~2 deg: align is angle-only here
+        self.declare_parameter('post_corner_exit_frac', 0.6)    # leave recovery only below this share of dist_tolerance (hysteresis)
+        self.post_corner_exit_frac = float(self.get_parameter('post_corner_exit_frac').value)
         self.post_corner_dist_tol = self.get_parameter('post_corner_dist_tol_m').value
         self.post_corner_max_steps = int(self.get_parameter('post_corner_max_steps').value)
         self.post_corner_angle_tol = self.get_parameter('post_corner_angle_tol_rad').value

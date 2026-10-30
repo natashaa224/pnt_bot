@@ -233,9 +233,13 @@ class WallFollowHandler(StateHandler):
         # error for a few strips, skip strokes until it is back inside dist_tolerance.
         recovery = bool(context.get('_dist_recovery', False))
         dist_err = abs(wall_status.distance_error_corrected) if wall_status is not None else 0.0
+        # Hysteresis: leave recovery only well inside the tolerance. Leaving at exactly dist_tolerance made a
+        # reading of 0.099 m end it and the next 0.101 m reading fault (seen on the robot after a bump-out).
+        exit_thr = self.node.dist_tolerance * self.node.post_corner_exit_frac
         if (recovery and wall_status is not None and getattr(wall_status, 'wall_valid', True)
-                and dist_err <= self.node.dist_tolerance):
-            self.node.get_logger().info('[FSM] post-corner recovery complete - distance back inside tolerance')
+                and dist_err <= exit_thr):
+            self.node.get_logger().info(
+                f'[FSM] post-corner recovery complete - distance {dist_err:.3f}m <= {exit_thr:.3f}m')
             context['_dist_recovery'] = False
             recovery = False
         tol_eff = self.node.post_corner_dist_tol if recovery else self.node.dist_tolerance
