@@ -54,5 +54,249 @@
       </camera>
     </gui>
 
+    <!-- ================================================================= -->
+    <!-- INSPECTION WALL SYSTEM                                            -->
+    <!-- Baseline wall surface inner face is at Y = -0.750 m               -->
+    <!-- Thickness: 0.15 m -> Wall Center at Y = -0.825 m                  -->
+    <!-- Height: 2.50 m                                                    -->
+    <!-- ================================================================= -->
+    <model name="inspection_wall_system">
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+
+      <link name="wall_link">
+
+        <!-- Section A: Wall before cutout (from X = -3.5 to X = -2.2) -->
+        <collision name="col_wall_a">
+          <pose>-2.85 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>1.30 0.15 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_a">
+          <pose>-2.85 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>1.30 0.15 2.50</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Cutout Sill / Lintel: Wall below and above window cutout (X = -2.2 to -1.4) -->
+        <!-- Below opening (Z = 0.0 to 0.45) -->
+        <collision name="col_wall_window_sill">
+          <pose>-1.80 -0.825 0.225 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.45</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_window_sill">
+          <pose>-1.80 -0.825 0.225 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.45</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Above opening (Z = 1.65 to 2.50) -->
+        <collision name="col_wall_window_top">
+          <pose>-1.80 -0.825 2.075 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.85</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_window_top">
+          <pose>-1.80 -0.825 2.075 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.85</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Section B1: Wall from X = -1.4 to X = +2.2 (length = 3.6m, center = 0.40m) -->
+        <collision name="col_wall_b1">
+          <pose>0.40 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>3.60 0.15 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_b1">
+          <pose>0.40 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>3.60 0.15 2.50</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Window Cutout 2: From X = 2.2 to X = 3.0 (width 0.80m, center = 2.60m) -->
+        <!-- Below window opening (Z = 0.0 to 0.50m) -->
+        <collision name="col_window2_sill">
+          <pose>2.60 -0.825 0.25 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.50</size></box></geometry>
+        </collision>
+        <visual name="vis_window2_sill">
+          <pose>2.60 -0.825 0.25 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.50</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Above window opening (Z = 1.70 to 2.50m) -->
+        <collision name="col_window2_top">
+          <pose>2.60 -0.825 2.10 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.80</size></box></geometry>
+        </collision>
+        <visual name="vis_window2_top">
+          <pose>2.60 -0.825 2.10 0 0 0</pose>
+          <geometry><box><size>0.80 0.15 0.80</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Section B2: Wall from X = 3.0 to X = +7.0 (length = 4.0m, center = 5.00m) -->
+        <collision name="col_wall_b2">
+          <pose>5.00 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>4.00 0.15 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_b2">
+          <pose>5.00 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>4.00 0.15 2.50</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Baseboard strip along wall bottom (for visual contrast) -->
+        <visual name="vis_wall_baseboard">
+          <pose>2.0 -0.745 0.05 0 0 0</pose>
+          <geometry><box><size>10.0 0.02 0.10</size></box></geometry>
+          <material>
+            <ambient>0.25 0.25 0.28 1.0</ambient>
+            <diffuse>0.30 0.30 0.33 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- =============================================================== -->
+        <!-- WALL SURFACE OBSTACLE 1: Junction / Control Box (at X = 0.0 m)  -->
+        <!-- Center: X = 0.0, Y = -0.675 (protrudes 0.15m), Z = 0.85 m       -->
+        <!-- =============================================================== -->
+        <collision name="col_obs1_junction_box">
+          <pose>0.0 -0.675 0.85 0 0 0</pose>
+          <geometry><box><size>0.32 0.15 0.38</size></box></geometry>
+        </collision>
+        <visual name="vis_obs1_junction_box">
+          <pose>0.0 -0.675 0.85 0 0 0</pose>
+          <geometry><box><size>0.32 0.15 0.38</size></box></geometry>
+          <material>
+            <ambient>0.2 0.3 0.45 1.0</ambient>
+            <diffuse>0.25 0.38 0.58 1.0</diffuse>
+          </material>
+        </visual>
+        <!-- Box handle / indicator plate -->
+        <visual name="vis_obs1_plate">
+          <pose>0.0 -0.595 0.85 0 0 0</pose>
+          <geometry><box><size>0.12 0.01 0.12</size></box></geometry>
+          <material>
+            <ambient>0.9 0.7 0.1 1.0</ambient>
+            <diffuse>0.95 0.75 0.1 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- =============================================================== -->
+        <!-- WALL SURFACE OBSTACLE 2: Vertical Conduit Pipe (at X = 1.6 m)   -->
+        <!-- Runs from floor to ceiling, protruding 0.12 m                   -->
+        <!-- =============================================================== -->
+        <collision name="col_obs2_conduit">
+          <pose>1.60 -0.69 1.25 0 0 0</pose>
+          <geometry><box><size>0.10 0.12 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_obs2_conduit">
+          <pose>1.60 -0.69 1.25 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>2.50</length></cylinder></geometry>
+          <material>
+            <ambient>0.85 0.45 0.1 1.0</ambient>
+            <diffuse>0.90 0.50 0.12 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- =============================================================== -->
+        <!-- WALL SURFACE OBSTACLE 3: Wall Column Bump-out (at X = 3.5 m)    -->
+        <!-- Structural pilaster protruding 0.22 m from baseline             -->
+        <!-- =============================================================== -->
+        <collision name="col_obs3_column">
+          <pose>3.50 -0.64 1.25 0 0 0</pose>
+          <geometry><box><size>0.60 0.22 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_obs3_column">
+          <pose>3.50 -0.64 1.25 0 0 0</pose>
+          <geometry><box><size>0.60 0.22 2.50</size></box></geometry>
+          <material>
+            <ambient>0.4 0.42 0.45 1.0</ambient>
+            <diffuse>0.5 0.52 0.56 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- =============================================================== -->
+        <!-- WALL SURFACE OBSTACLE 4: Fire Safety Cabinet (at X = 5.2 m)     -->
+        <!-- Red cabinet protruding 0.18 m                                   -->
+        <!-- =============================================================== -->
+        <collision name="col_obs4_fire_cabinet">
+          <pose>5.20 -0.66 0.90 0 0 0</pose>
+          <geometry><box><size>0.28 0.18 0.65</size></box></geometry>
+        </collision>
+        <visual name="vis_obs4_fire_cabinet">
+          <pose>5.20 -0.66 0.90 0 0 0</pose>
+          <geometry><box><size>0.28 0.18 0.65</size></box></geometry>
+          <material>
+            <ambient>0.85 0.12 0.12 1.0</ambient>
+            <diffuse>0.90 0.15 0.15 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Corridor Back Wall (at Y = +1.8 m) -->
+        <collision name="col_corridor_back">
+          <pose>1.80 1.80 1.25 0 0 0</pose>
+          <geometry><box><size>10.60 0.15 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_corridor_back">
+          <pose>1.80 1.80 1.25 0 0 0</pose>
+          <geometry><box><size>10.60 0.15 2.50</size></box></geometry>
+          <material>
+            <ambient>0.75 0.75 0.75 1.0</ambient>
+            <diffuse>0.78 0.78 0.78 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Corridor End Wall Left (at X = -3.5 m) -->
+        <collision name="col_corridor_left">
+          <pose>-3.50 0.4875 1.25 0 0 0</pose>
+          <geometry><box><size>0.15 2.775 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_corridor_left">
+          <pose>-3.50 0.4875 1.25 0 0 0</pose>
+          <geometry><box><size>0.15 2.775 2.50</size></box></geometry>
+          <material>
+            <ambient>0.75 0.75 0.75 1.0</ambient>
+            <diffuse>0.78 0.78 0.78 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Corridor End Wall Right (at X = +7.1 m) -->
+        <collision name="col_corridor_right">
+          <pose>7.10 0.4875 1.25 0 0 0</pose>
+          <geometry><box><size>0.15 2.775 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_corridor_right">
+          <pose>7.10 0.4875 1.25 0 0 0</pose>
+          <geometry><box><size>0.15 2.775 2.50</size></box></geometry>
+          <material>
+            <ambient>0.75 0.75 0.75 1.0</ambient>
+            <diffuse>0.78 0.78 0.78 1.0</diffuse>
+          </material>
+        </visual>
+
+      </link>
+    </model>
+
   </world>
 </sdf>

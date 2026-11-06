@@ -38,6 +38,13 @@ def generate_launch_description():
     )
     wall_detection_pkg = LaunchConfiguration('wall_detection_pkg')
 
+    fake_paint_arg = DeclareLaunchArgument(
+        'fake_paint',
+        default_value='false',
+        description='Enable fake paint actuator in env_monitoring_v2'
+    )
+    fake_paint = LaunchConfiguration('fake_paint')
+
     headless_arg = DeclareLaunchArgument(
         'headless',
         default_value='false',
@@ -260,7 +267,7 @@ def generate_launch_description():
                 'enable_internal':  True,
                 'enable_external':  True,
                 'enable_bumpout':   True,
-                'fake_paint':       True,
+                'fake_paint':       fake_paint,
             }
         ]
     )
@@ -386,6 +393,7 @@ def generate_launch_description():
         DeclareLaunchArgument('spawn_z', default_value='0.10'),
         DeclareLaunchArgument('spawn_yaw', default_value='0.0'),
         wall_detection_pkg_arg,
+        fake_paint_arg,
         rviz_arg,
 
         # Sim

@@ -728,6 +728,7 @@ class WallMotionNode(Node):
             self._crawl_last_x = self._odom_x
             self._crawl_last_y = self._odom_y
             self._crawl_dist = 0.0
+            self.publish_stop()
             self.get_logger().info(f'[CRAWL] strip complete - traveled={traveled:.3f}m')
 
         self.publish_motion_status(
@@ -853,6 +854,7 @@ class WallMotionNode(Node):
             self._step_done    = True
             self._step_start_x = None
             self._strip_mode   = None
+            self.publish_stop()
             self.publish_motion_status(step_complete=True)
             self.get_logger().info(
                 f'[STEP] complete - lateral={lateral:.3f}m traveled={traveled:.3f}m')
@@ -923,6 +925,7 @@ class WallMotionNode(Node):
             cmd.angular.z = 0.0
             self._step_done    = True
             self._step_start_x = None
+            self.publish_stop()
             self.publish_motion_status(step_complete=True)
             self.get_logger().info(
                 f'[STEP] complete - lateral={lateral:.3f}m '

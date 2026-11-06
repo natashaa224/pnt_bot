@@ -114,6 +114,7 @@ class SimBackend(ActuatorBackend):
         self._moving   = False
         self._z_target = self._js_z_pos
         self._jog_dir = 0
+        self._publish_z_point(self._js_z_pos, 0.1)
         self._node.get_logger().info('[sim] Z stop')
 
 

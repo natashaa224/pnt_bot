@@ -21,10 +21,13 @@ Publishes:
                                               handling returns it to WALL_FOLLOW
 """
 
+import math
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from std_msgs.msg import Bool, String
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from painting_robot_msgs.msg import (
     StripMap, ZAxisCmd, WristCmd, SprayCmd,
     PaintHeadStatus, RobotCommand
@@ -66,6 +69,9 @@ class PaintExecutorNode(Node):
         self.declare_parameter('wrist_settle_timeout_s', WRIST_SETTLE_TIMEOUT_S)
         self.declare_parameter('position_tol_m',      POSITION_TOL_M)
         self.declare_parameter('stroke_timeout_s',    STROKE_TIMEOUT_S)
+        self.declare_parameter('stationary_speed_tol_mps', 0.02)
+        self.declare_parameter('stationary_yaw_tol_radps', 0.02)
+        self.declare_parameter('stationary_timeout_s',    2.0)
 
         self._strip_map     = None
         self._z_state       = None
@@ -80,18 +86,26 @@ class PaintExecutorNode(Node):
         self._wrist_init_done = False
         self._finish_start    = None     # set when Z reaches stroke end; wrist-settle phase
 
+        self._base_speed         = 0.0
+        self._base_yaw_rate      = 0.0
+        self._has_odom           = False
+        self._pending_stroke     = False
+        self._pending_wait_start = None
+
         latch_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
         self.create_subscription(StripMap,       '/strip_map',         self._strip_map_cb,    latch_qos)
         self.create_subscription(PaintHeadStatus,'/paint_head_status', self._z_state_cb,      10)
         self.create_subscription(String,         '/robot_state',       self._fsm_state_cb,    10)
         self.create_subscription(RobotCommand,   '/robot_command',     self._robot_command_cb, 10)
+        self.create_subscription(Odometry,       '/paint_bot/odom',    self._odom_cb,         10)
 
         self._z_pub        = self.create_publisher(ZAxisCmd,  '/z_axis_cmd',     10)
         self._wrist_pub    = self.create_publisher(WristCmd,  '/wrist_cmd',      10)
         self._spray_pub    = self.create_publisher(SprayCmd,  '/spray_cmd',      10)
         self._complete_pub = self.create_publisher(Bool,      '/stroke_complete', 10)
-        self._homing_pub = self.create_publisher(Bool, '/homing_complete', 10)
+        self._homing_pub   = self.create_publisher(Bool,      '/homing_complete', 10)
+        self._stop_base_pub = self.create_publisher(Twist,    '/paint_bot/cmd_vel', 10)
 
 
         self.create_timer(0.02, self._monitor_loop)
@@ -134,12 +148,20 @@ class PaintExecutorNode(Node):
             self._z_homed = False
             self.get_logger().warn('[executor] homed cleared (actuator un-homed — ESTOP/re-teach)')
 
+    def _odom_cb(self, msg: Odometry):
+        self._has_odom = True
+        vx = msg.twist.twist.linear.x
+        vy = msg.twist.twist.linear.y
+        wz = msg.twist.twist.angular.z
+        self._base_speed = math.hypot(vx, vy)
+        self._base_yaw_rate = abs(wz)
+
     def _fsm_state_cb(self, msg: String):
         """Only used for abort — if FSM leaves PAINT_EXECUTE unexpectedly."""
         prev = self._fsm_state
         self._fsm_state = msg.data
         if prev == 'PAINT_EXECUTE' and msg.data != 'PAINT_EXECUTE':
-             if self._active:
+             if self._active or self._pending_stroke:
                 self.get_logger().warn('[executor] FSM left PAINT_EXECUTE — aborting')
                 self._abort_stroke()
 
@@ -148,8 +170,10 @@ class PaintExecutorNode(Node):
         if msg.state == 'PAINT_EXECUTE' and msg.command_id != self._last_command_id:
             self._last_command_id = msg.command_id
             self.get_logger().info(
-                f'[executor] New command id={msg.command_id} → starting stroke')
-            self._start_stroke()
+                f'[executor] New command id={msg.command_id} → halting base and waiting until stationary')
+            self._stop_base_pub.publish(Twist())
+            self._pending_stroke = True
+            self._pending_wait_start = self.get_clock().now()
 
         elif msg.state == 'SYSTEM_CHECK' and msg.command_id != self._last_command_id:
             self._last_command_id = msg.command_id
@@ -208,9 +232,10 @@ class PaintExecutorNode(Node):
         # self._set_wrist(WRIST_NEUTRAL_DEG)
 
     def _abort_stroke(self):
-        if not self._active:
+        if not self._active and not self._pending_stroke:
             return
         self._active = False
+        self._pending_stroke = False
         self._stroke_start_time = None
         self._finish_start = None
         self._set_spray(False)
@@ -280,6 +305,26 @@ class PaintExecutorNode(Node):
     # Monitor loop at 50Hz
     # ------------------------------------------------------------------
     def _monitor_loop(self):
+        if self._pending_stroke:
+            now = self.get_clock().now()
+            elapsed = (now - self._pending_wait_start).nanoseconds * 1e-9
+            speed_tol = self.get_parameter('stationary_speed_tol_mps').value
+            yaw_tol = self.get_parameter('stationary_yaw_tol_radps').value
+            timeout = self.get_parameter('stationary_timeout_s').value
+
+            is_stationary = (not self._has_odom or (self._base_speed <= speed_tol and self._base_yaw_rate <= yaw_tol))
+            if is_stationary or elapsed >= timeout:
+                if elapsed >= timeout and not is_stationary:
+                    self.get_logger().warn(
+                        f'[executor] stationary timeout ({elapsed:.2f}s) — '
+                        f'speed={self._base_speed:.3f}m/s, yaw_rate={self._base_yaw_rate:.3f}rad/s, proceeding with stroke')
+                else:
+                    self.get_logger().info(
+                        f'[executor] base is stationary (speed={self._base_speed:.3f}m/s, yaw={self._base_yaw_rate:.3f}rad/s) → starting stroke')
+                self._pending_stroke = False
+                self._start_stroke()
+            return
+
         if not self._active or self._z_state is None or self._strip_map is None:
             return
 
