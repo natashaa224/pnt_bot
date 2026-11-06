@@ -1,0 +1,16 @@
+laser_scan_box_filter:
+  ros__parameters:
+    # Wall height span in laser frame coordinates (x_laser is vertical)
+    min_x: -2.5
+    max_x: 2.0
+
+    # Distance span covering the wall region at y = -0.47m from laser
+    min_y: -1.0
+    max_y: -0.15
+
+    # Range limits
+    min_range: 0.08
+    max_range: 16.0
+
+    # RViz marker box thickness
+    box_z_thickness: 0.05

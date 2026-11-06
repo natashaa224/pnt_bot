@@ -7,9 +7,15 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(lidar_wall_detection REQUIRED)
+
+add_executable(corner_bringup src/corner_bringup.cpp)
+ament_target_dependencies(corner_bringup rclcpp lidar_wall_detection)
+
+install(TARGETS corner_bringup
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

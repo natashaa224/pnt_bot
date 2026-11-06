@@ -1,0 +1,14 @@
+cloud_accumulator_wall_scan:
+  ros__parameters:
+    fixed_frame: "odom"
+    lidar_frame: "laser"
+    input_cloud_topic: "/wall_scan_cloud"
+    max_cloud_size: 50000
+    accumulation_distance: 0.02
+    voxel_size: 0.02
+    window_forward: 8.0
+    window_side: 2.0
+    min_height: -0.2
+    max_height: 2.6
+    cutout_gap_threshold: 0.08
+    min_cutout_points: 6

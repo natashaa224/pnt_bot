@@ -19,15 +19,15 @@
     <xacro:include filename="$(find paint_bot_description)/urdf/paint_bot_transmission.xacro"/>
     <xacro:include filename="$(find paint_bot_description)/urdf/lidar.xacro"/>
 
-    <!-- Instantiate Driven Wheels -->
-    <xacro:driven_wheel name="left"  parent="base_link" xyz="0 0.288 0.010" rpy="0 0 0" y_reflect="1"/>
-    <xacro:driven_wheel name="right" parent="base_link" xyz="0 -0.288 0.010" rpy="0 0 0" y_reflect="-1"/>
+    <!-- Instantiate Driven Wheels with firm ground contact -->
+    <xacro:driven_wheel name="left"  parent="base_link" xyz="0 0.288 -0.010" rpy="0 0 0" y_reflect="1"/>
+    <xacro:driven_wheel name="right" parent="base_link" xyz="0 -0.288 -0.010" rpy="0 0 0" y_reflect="-1"/>
 
-    <!-- Instantiate Casters -->
-    <xacro:caster name="front_right" parent="base_link" plate_xyz="0.375 -0.243 -0.015" wheel_xyz="0.025 0 -0.039"/>
-    <xacro:caster name="front_left"  parent="base_link" plate_xyz="0.375 0.243 -0.015"  wheel_xyz="0.025 0 -0.039"/>
-    <xacro:caster name="rear_right"  parent="base_link" plate_xyz="-0.375 -0.243 -0.015" wheel_xyz="0.025 0 -0.044"/>
-    <xacro:caster name="rear_left"   parent="base_link" plate_xyz="-0.375 0.243 -0.015"  wheel_xyz="0.025 0 -0.044"/>
+    <!-- Instantiate Casters balanced at exact ground contact height -->
+    <xacro:caster name="front_right" parent="base_link" plate_xyz="0.375 -0.243 -0.040" wheel_xyz="0.025 0 -0.040"/>
+    <xacro:caster name="front_left"  parent="base_link" plate_xyz="0.375 0.243 -0.040"  wheel_xyz="0.025 0 -0.040"/>
+    <xacro:caster name="rear_right"  parent="base_link" plate_xyz="-0.375 -0.243 -0.040" wheel_xyz="0.025 0 -0.040"/>
+    <xacro:caster name="rear_left"   parent="base_link" plate_xyz="-0.375 0.243 -0.040"  wheel_xyz="0.025 0 -0.040"/>
 
     <!-- Instantiate Gantry (Prismatic height axis + spray gun) -->
     <xacro:if value="$(arg attach_gantry)">
@@ -47,28 +47,46 @@
         paint_spray_gun="wrist_joint"
        />
 
-    <!-- ros2_control Gazebo plugins -->
-    <xacro:if value="${sim == 'classic'}">
-        <gazebo>
-            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so" >
-                <parameters>$(find paint_bot_description)/config/paint_bot_controller.yaml</parameters>
-                <ros>
-                    <remapping>/paint_bot/cmd_vel_unstamped:=/paint_bot/cmd_vel</remapping>
-                </ros>
-            </plugin>
-        </gazebo>
-    </xacro:if>
+    <!-- Gazebo Classic Plugins for Painting Robot Simulation -->
+    <gazebo>
+        <!-- Differential Drive for Painting Robot Wheels -->
+        <plugin name="diff_drive_controller" filename="libgazebo_ros_diff_drive.so">
+            <update_rate>50</update_rate>
+            <left_joint>left_wheel_joint</left_joint>
+            <right_joint>right_wheel_joint</right_joint>
+            <wheel_separation>0.576</wheel_separation>
+            <wheel_diameter>0.20</wheel_diameter>
+            <max_wheel_torque>500.0</max_wheel_torque>
+            <max_wheel_acceleration>10.0</max_wheel_acceleration>
+            <publish_odom>true</publish_odom>
+            <publish_odom_tf>true</publish_odom_tf>
+            <publish_wheel_tf>true</publish_wheel_tf>
+            <odometry_frame>odom</odometry_frame>
+            <robot_base_frame>base_footprint</robot_base_frame>
+            <ros>
+                <remapping>cmd_vel:=/paint_bot/cmd_vel</remapping>
+                <remapping>odom:=/paint_bot/odom</remapping>
+            </ros>
+        </plugin>
 
-    <!-- <xacro:if value="${sim == 'ignition'}">
-        <gazebo>
-            <plugin name="gz_ros2_control" filename="libgz_ros2_control-system.so" >
-                <parameters>$(find paint_bot_description)/config/paint_bot_controller.yaml</parameters>
-                <ros>
-                    <remapping>/paint_bot/cmd_vel_unstamped:=/paint_bot/cmd_vel</remapping>
-                </ros>
-            </plugin>
-        </gazebo>
-    </xacro:if> -->
+        <!-- Joint State Publisher for all Painting Robot joints -->
+        <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+            <update_rate>50</update_rate>
+            <joint_name>left_wheel_joint</joint_name>
+            <joint_name>right_wheel_joint</joint_name>
+            <joint_name>zAxis_joint</joint_name>
+            <joint_name>wrist_joint</joint_name>
+        </plugin>
+
+        <!-- Prismatic Gantry Joint Pose Trajectory Controller -->
+        <plugin name="gantry_pose_controller" filename="libgazebo_ros_joint_pose_trajectory.so">
+            <update_rate>50</update_rate>
+            <ros>
+                <namespace>/paint_axis_controller</namespace>
+                <remapping>set_joint_trajectory:=joint_trajectory</remapping>
+            </ros>
+        </plugin>
+    </gazebo>
 
      <joint name="imu_joint" type="fixed">
         <parent link="base_link"/>

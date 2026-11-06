@@ -2,7 +2,7 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -19,15 +19,25 @@ def generate_launch_description():
     painting_params  = os.path.join(pkg_painting, 'config', 'actuator_bridge_params.yaml')
     gazebo_params_file = os.path.join(pkg_bringup, 'config', 'gazebo_params.yaml')
     world_file = LaunchConfiguration('world')
-    default_world = os.path.join(
-        get_package_share_directory('paint_bot_description'), 'worlds', 'bump_070.world'
-    )
-    
-    
     pkg_description = get_package_share_directory('paint_bot_description')
+    default_world = os.path.join(pkg_description, 'worlds', 'wall_obstacle_world.world')
     urdf_file = os.path.join(pkg_description, 'urdf', 'paint_bot_urdf.xacro')
 
+    model_paths = [
+        os.path.dirname(pkg_description),
+        os.environ.get('GAZEBO_MODEL_PATH', '')
+    ]
+    gazebo_model_path_env = SetEnvironmentVariable(
+        'GAZEBO_MODEL_PATH', ':'.join([p for p in model_paths if p]))
+
     # ── Args ──────────────────────────────────────────────────────────────────
+    wall_detection_pkg_arg = DeclareLaunchArgument(
+        'wall_detection_pkg',
+        default_value='lidar_wall_detection',
+        description='Package providing wall_detection_node (lidar_wall_detection or painting_robot_navigation)'
+    )
+    wall_detection_pkg = LaunchConfiguration('wall_detection_pkg')
+
     headless_arg = DeclareLaunchArgument(
         'headless',
         default_value='false',
@@ -38,7 +48,23 @@ def generate_launch_description():
     sim = LaunchConfiguration("sim")  # classic / ignition
     use_sim_time = LaunchConfiguration("use_sim_time")
     gui = LaunchConfiguration("gui")
+    rviz_arg = DeclareLaunchArgument(
+        'rviz',
+        default_value='true',
+        description='Launch RViz2 for visualization'
+    )
     rviz_flag = LaunchConfiguration('rviz')
+    rviz_config_file = os.path.join(pkg_description, 'rviz', 'paint_bot.rviz')
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_config_file],
+        condition=IfCondition(rviz_flag)
+    )
+
     moveit_rviz_flag = LaunchConfiguration('moveit_rviz')
 
     spawn_x = LaunchConfiguration("spawn_x")
@@ -60,7 +86,7 @@ def generate_launch_description():
         parameters=[{
             "use_sim_time": True,
             "robot_description": ParameterValue(
-                Command(['xacro ', urdf_file, ' sim:=classic attach_gantry:=false attach_sensors:=false']),
+                Command(['xacro ', urdf_file, ' sim:=classic attach_gantry:=true attach_sensors:=false']),
                 value_type=str
             )
         }],
@@ -140,53 +166,49 @@ def generate_launch_description():
     )
 
     # ── Controllers ───────────────────────────────────────────────────────────
+    # diff_drive_spawner = Node(
+    #     package='controller_manager',
+    #     executable='spawner',
+    #     arguments=['paint_bot'],
+    # )
+    # joint_broad_spawner = Node(
+    #     package='controller_manager',
+    #     executable='spawner',
+    #     arguments=['joint_state_broadcaster'],
+    # )
+    # axis_spawner = Node(
+    #     package='controller_manager',
+    #     executable='spawner',
+    #     arguments=['paint_axis_controller'],
+    #     output='screen'
+    # )
 
-
-    diff_drive_spawner = Node(
-    package='controller_manager',
-    executable='spawner',
-    arguments=['paint_bot'],
-    )
-
-    joint_broad_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['joint_state_broadcaster'],
-    )
-
-    axis_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['paint_axis_controller'],
-        output='screen'
-    )
-
-    # ── EKF ───────────────────────────────────────────────────────────────────
-    ekf_node = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_filter_node',
-        output='screen',
-        remappings=[('odometry/filtered', '/paint_bot/odom_filtered')],
-        parameters=[
-            os.path.join(pkg_bringup, 'config', 'ekf.yaml'),
-            {'use_sim_time': True}
-        ]
-    )
+    # ── EKF (odometry provided directly by Gazebo diff_drive plugin) ───────────
+    # ekf_node = Node(
+    #     package='robot_localization',
+    #     executable='ekf_node',
+    #     name='ekf_filter_node',
+    #     output='screen',
+    #     remappings=[('odometry/filtered', '/paint_bot/odom_filtered')],
+    #     parameters=[
+    #         os.path.join(pkg_bringup, 'config', 'ekf.yaml'),
+    #         {'use_sim_time': True}
+    #     ]
+    # )
 
     safety_monitor_node = Node(
         package='painting_robot_mcu',
         executable='safety_monitor_node',
         name='safety_monitor_node',
         output='screen',
-        parameters=[{'use_sim_time': True}],
+        parameters=[{'use_sim_time': True, 'bypass': True}],
     )
 
     # ── Navigation ────────────────────────────────────────────────────────────
     common_alignment_params = os.path.join(pkg_bringup, 'config', 'common_alignment_params.yaml')
 
     wall_detection_node = Node(
-        package='painting_robot_navigation',
+        package=wall_detection_pkg,
         executable='wall_detection_node',
         name='wall_detection_node',
         output='screen',
@@ -219,7 +241,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             common_alignment_params,
-            {'use_sim_time': True, 'skip_homing_gate': True},
+            {'use_sim_time': True, 'skip_homing_gate': True, 'auto_start': True},
         ],
     )
 
@@ -230,7 +252,7 @@ def generate_launch_description():
         name='env_monitoring_v2',
         output='screen',
         parameters=[
-            os.path.join(pkg_bringup, 'config', 'common_params.yaml'),           # single source: lidar_offset, target_distance
+            common_alignment_params,           # single source: lidar_offset, target_distance
             os.path.join(pkg_bringup, 'config', 'env_monitoring_params.yaml'),
             {
                 'use_sim_time': True,
@@ -270,15 +292,92 @@ def generate_launch_description():
     )
 
 
+    # ── Vertical LiDAR Wall & Obstacle Detection ──────────────────────────────
+    enable_vertical_arg = DeclareLaunchArgument(
+        'enable_vertical_lidar',
+        default_value='true',
+        description='Launch vertical LiDAR wall slice, obstacle, and cutout detection'
+    )
+    enable_vertical = LaunchConfiguration('enable_vertical_lidar')
+
+    pkg_lidar = get_package_share_directory('lidar_wall_detection')
+    box_filter_params = os.path.join(pkg_lidar, 'config', 'wall_box_filter.yaml')
+    obstacle_params   = os.path.join(pkg_lidar, 'config', 'obstacle_detector.yaml')
+    cutout_params     = os.path.join(pkg_lidar, 'config', 'cutout_detector.yaml')
+    accumulator_params = os.path.join(pkg_lidar, 'config', 'wall_3d_accumulator.yaml')
+
+    box_filter_node = Node(
+        package='lidar_wall_detection',
+        executable='laser_scan_box_filter',
+        name='laser_scan_box_filter',
+        output='screen',
+        parameters=[box_filter_params, {'use_sim_time': True}],
+        condition=IfCondition(enable_vertical)
+    )
+
+    obstacle_detector_node = Node(
+        package='lidar_wall_detection',
+        executable='obstacle_detector',
+        name='obstacle_detector',
+        output='screen',
+        parameters=[obstacle_params, {'use_sim_time': True}],
+        condition=IfCondition(enable_vertical)
+    )
+
+    cutout_detector_node = Node(
+        package='lidar_wall_detection',
+        executable='cutout_window_detector',
+        name='cutout_window_detector',
+        output='screen',
+        parameters=[cutout_params, {'use_sim_time': True}],
+        condition=IfCondition(enable_vertical)
+    )
+
+    scan_to_cloud_node = Node(
+        package='lidar_wall_detection',
+        executable='wall_scan_to_pointcloud_node',
+        name='wall_scan_to_pointcloud',
+        output='screen',
+        parameters=[{
+            'scan_topic': '/wall_scan',
+            'cloud_topic': '/wall_scan_cloud',
+            'target_frame': 'laser',
+            'publish_z': 0.0,
+            'use_sim_time': True,
+        }],
+        condition=IfCondition(enable_vertical)
+    )
+
+    cloud_accumulator_node = Node(
+        package='lidar_wall_detection',
+        executable='cloud_accumulator_node',
+        name='cloud_accumulator_wall_scan',
+        output='screen',
+        parameters=[
+            accumulator_params,
+            {
+                'fixed_frame': 'odom',
+                'lidar_frame': 'laser',
+                'input_cloud_topic': '/wall_scan_cloud',
+                'use_sim_time': True,
+            }
+        ],
+        condition=IfCondition(enable_vertical)
+    )
+
     return LaunchDescription([
+        gazebo_model_path_env,
         # Args
         headless_arg,
+        enable_vertical_arg,
         DeclareLaunchArgument('world', default_value=default_world,
                               description='Path to the Gazebo world file'),
-        DeclareLaunchArgument('spawn_x', default_value='2.50'),
-        DeclareLaunchArgument('spawn_y', default_value='3.08'),
-        DeclareLaunchArgument('spawn_z', default_value='0.1'),
-        DeclareLaunchArgument('spawn_yaw', default_value='-3.1415'),
+        DeclareLaunchArgument('spawn_x', default_value='-1.20'),
+        DeclareLaunchArgument('spawn_y', default_value='0.15'),
+        DeclareLaunchArgument('spawn_z', default_value='0.10'),
+        DeclareLaunchArgument('spawn_yaw', default_value='0.0'),
+        wall_detection_pkg_arg,
+        rviz_arg,
 
         # Sim
         robot_state_publisher,
@@ -286,25 +385,27 @@ def generate_launch_description():
         gazebo_headless,
         spawn_entity,
 
-        # Controllers
-        diff_drive_spawner,
-        joint_broad_spawner,
-        axis_spawner,
-
         # Core
-        ekf_node,
         wall_detection_node,
         wall_motion_node,
         fsm_node,
         env_monitoring_node,
         safety_monitor_node,
-        # joy_node,
-        # joy_teleop_node,
+
+        # Vertical LiDAR Surface & Obstacle Detection
+        box_filter_node,
+        obstacle_detector_node,
+        cutout_detector_node,
+        scan_to_cloud_node,
+        cloud_accumulator_node,
 
         # Painting
         paint_planner,
         paint_executor,
         actuator_bridge,
+
+        # Visualization
+        rviz_node,
     ])
 
 

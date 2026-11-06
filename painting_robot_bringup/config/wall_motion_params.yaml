@@ -19,7 +19,8 @@ wall_motion_node:
     # ── Corner turn ───────────────────────────────────────────────────────────────
     corner_turn_segments:    2      # N=1 single sweep, N=2 splits with swatch pause
     corner_turn_speed:       0.15    # rad/s
-    corner_turn_tolerance:   1.0    # degrees — completion threshold per segment
+    corner_turn_tolerance:   2.5    # degrees — completion threshold per segment
+    arc_finish_ang_floor:    0.06   # rad/s floor near target
     corner_swatch_pause_s:   2.0    # seconds pause between segments (N>1 only)
     corner_fault_timeout_s:  10.0   # seconds CRITICAL collision before FAULT
     corner_turn_kp: 1.2

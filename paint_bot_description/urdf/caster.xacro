@@ -67,21 +67,13 @@
             <axis xyz="0 1 0"/>
         </joint>
 
-        <!-- Gazebo joint properties for implicit solver stability -->
-        <gazebo reference="${name}_castor_plate_joint">
-            <implicitSpringDamper>true</implicitSpringDamper>
-        </gazebo>
-        <gazebo reference="${name}_castor_wheel_joint">
-            <implicitSpringDamper>true</implicitSpringDamper>
-        </gazebo>
-
-        <!-- Caster wheel Gazebo contact properties (mu1=mu2=0.4 matching reference truebot) -->
+        <!-- Caster wheel Gazebo contact properties (frictionless omnidirectional sliding ball) -->
         <gazebo reference="${name}_castor_wheel_link">
             <material>Gazebo/DarkGrey</material>
-            <mu1>0.4</mu1>
-            <mu2>0.4</mu2>
+            <mu1>0.0</mu1>
+            <mu2>0.0</mu2>
             <kp>1000000.0</kp>
-            <kd>1000.0</kd>
+            <kd>1.0</kd>
             <minDepth>0.001</minDepth>
         </gazebo>
 

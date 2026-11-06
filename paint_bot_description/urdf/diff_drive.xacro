@@ -41,21 +41,15 @@
             <limit effort="500.0" velocity="10.0"/>
         </joint>
 
-        <!-- Gazebo joint properties for implicit solver stability -->
-        <gazebo reference="${name}_wheel_joint">
-            <implicitSpringDamper>true</implicitSpringDamper>
-        </gazebo>
-
-        <!-- Gazebo properties -->
+        <!-- Gazebo properties for driven traction wheels -->
         <gazebo reference="${name}_wheel_link">
             <material>Gazebo/Black</material>
-            <mu1>2.0</mu1>
-            <mu2>2.0</mu2>
+            <mu1>10.0</mu1>
+            <mu2>10.0</mu2>
             <kp>1000000.0</kp>
-            <kd>50.0</kd>
+            <kd>1.0</kd>
             <minDepth>0.001</minDepth>
             <maxVel>1.0</maxVel>
-            <fdir1>1 0 0</fdir1>
         </gazebo>
 
     </xacro:macro>

@@ -1,0 +1,28 @@
+cutout_window_detector:
+  ros__parameters:
+    input_scan_topic: "/wall_scan_filtered"
+    fixed_frame: "odom"
+    lidar_frame: "laser"
+
+    # Wall baseline distance from laser (Y = -0.410m)
+    baseline_y: -0.410
+    baseline_tolerance: 0.035
+
+    # Depth beyond baseline to confirm opening (0.08m)
+    cutout_depth_threshold: 0.08
+
+    # Cutout size constraints
+    min_cutout_height: 0.20
+    max_cutout_height: 2.40
+    min_consecutive_gap_rays: 4
+    min_wall_boundary_rays: 3
+
+    # Distinguish window from doorway by sill height
+    doorway_sill_threshold: 0.25
+
+    # LiDAR mounting height above ground
+    lidar_height_above_ground: 1.31
+
+    # Range limits
+    min_range: 0.08
+    max_range: 16.0

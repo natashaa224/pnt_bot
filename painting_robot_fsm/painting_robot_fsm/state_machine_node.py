@@ -148,7 +148,7 @@ class StateMachineNode(Node):
         self.create_subscription(Bool, '/stroke_complete', self.stroke_complete_cb, 10)
         self.create_subscription(EnvStatus, '/env_status', self.env_status_cb, 10)
         self.create_subscription(CollisionWarning, '/collision_warning', self.collision_cb, 10)
-        self.create_subscription(Odometry, '/paint_bot/odom_filtered', self.odom_cb, 10)
+        self.create_subscription(Odometry, '/paint_bot/odom', self.odom_cb, 10)
         # Raw wheel odometry (same source wall_motion drives from) for the
         # redundant-stroke gate - the EKF output lags/jumps at turn ends.
         self.create_subscription(Odometry, '/paint_bot/odom', self.raw_odom_cb, 10)
@@ -183,12 +183,30 @@ class StateMachineNode(Node):
         # recovery only. Pairs with actuator_bridge gating clear_limits to ESTOP.
         self._last_stop_was_estop = False
 
+        self.declare_parameter('auto_start', False)
+        self._auto_start = bool(self.get_parameter('auto_start').value)
+        self._auto_start_timer = None
+        if self._auto_start:
+            self._auto_start_timer = self.create_timer(1.0, self._auto_start_cb)
+
         self.create_timer(0.1, self.fsm_loop)
 
         self.handlers[self.state].on_enter()
         self.get_logger().info('StateMachineNode started (queue-driven)')
 
     # --- CALLBACKS ---------------------------------------
+
+    def _auto_start_cb(self):
+        if not self._safety_ok:
+            return
+        if self._auto_start_timer is not None:
+            self._auto_start_timer.cancel()
+            self._auto_start_timer = None
+        if self.state == RobotState.IDLE:
+            self.get_logger().info('[FSM] Auto-starting robot painting sequence...')
+            msg = String()
+            msg.data = 'START'
+            self.start_cmd_cb(msg)
 
     def _homing_complete_cb(self, msg: Bool):
         if msg.data:

@@ -72,11 +72,11 @@ class SimBackend(ActuatorBackend):
         self._jog_target    = 0.0
         self._jog_last_t    = None
 
-        # Manual teach-homing state — no physical limit switches exist,
-        # so homing is taught by the operator (see home_z/teach_set_lower/upper)
+        # Manual teach-homing state — pre-homed in simulation so painting stack starts ready
         self._teaching        = False
-        self._lower_set       = False
-        self._upper_set       = False
+        self._lower_set       = True
+        self._upper_set       = True
+        self._homed           = True
 
         self._traj_pub = node.create_publisher(
             JointTrajectory,
@@ -102,6 +102,7 @@ class SimBackend(ActuatorBackend):
             f'[sim] Z move → {target_m:.3f}m (est {self._move_duration:.1f}s)')
 
         msg = JointTrajectory()
+        msg.header.frame_id = 'base_link'
         msg.joint_names = ['zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
         pt.positions       = [float(target_m), 0.0]
@@ -192,6 +193,7 @@ class SimBackend(ActuatorBackend):
 
     def _publish_z_point(self, target_m: float, dt: float):
         msg = JointTrajectory()
+        msg.header.frame_id = 'base_link'
         msg.joint_names = ['zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
         pt.positions       = [float(target_m), 0.0]

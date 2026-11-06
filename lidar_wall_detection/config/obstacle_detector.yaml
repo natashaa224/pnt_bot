@@ -1,0 +1,33 @@
+obstacle_detector:
+  ros__parameters:
+    # Bounding box along the wall slice (height from laser center)
+    min_x: -2.5
+    max_x: 1.5
+
+    # Distance bounds to the wall (wall is at y = -0.410m from laser)
+    min_y: -1.0
+    max_y: -0.15
+
+    # Minimum and maximum LiDAR valid range
+    min_range: 0.08
+    max_range: 16.0
+
+    # Expected flat wall surface baseline in laser frame
+    baseline_y: -0.410
+    baseline_offset: 0.000
+    baseline_slope: 0.000
+
+    # Tolerance for flat wall surface (2.5 cm)
+    baseline_tolerance: 0.025
+
+    # Threshold for protruding obstacles (5.0 cm closer than baseline)
+    obstacle_threshold: 0.050
+
+    # Gap / cutout detection parameters
+    min_gap_points: 5
+    edge_points: 2
+    max_index_gap: 2
+
+    # Temporal confirmation
+    confirmation_scans: 1
+    confirmation_index_tolerance: 8
