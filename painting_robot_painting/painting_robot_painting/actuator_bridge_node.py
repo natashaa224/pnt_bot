@@ -94,27 +94,18 @@ class SimBackend(ActuatorBackend):
         target_m              = max(0.0, min(self._z_max_m, target_m))
         self._z_target        = target_m
         self._moving          = True
-        self._move_start_time = time.time()
+        self._move_last_t     = time.time()
         dist                  = abs(target_m - self._js_z_pos)
-        self._move_duration   = max(1.0, dist / self._sim_speed_mps)
+        self._move_duration   = max(0.5, dist / self._sim_speed_mps)
 
         self._node.get_logger().info(
-            f'[sim] Z move → {target_m:.3f}m (est {self._move_duration:.1f}s)')
-
-        msg = JointTrajectory()
-        msg.header.frame_id = 'base_link'
-        msg.joint_names = ['zAxis_joint', 'wrist_joint']
-        pt  = JointTrajectoryPoint()
-        pt.positions       = [float(target_m), 0.0]
-        pt.time_from_start = Duration(sec=int(self._move_duration), nanosec=0)
-        msg.points = [pt]
-        self._traj_pub.publish(msg)
+            f'[sim] Z move → {target_m:.3f}m from {self._js_z_pos:.3f}m (est {self._move_duration:.1f}s)')
 
     def stop_z(self):
         self._moving   = False
         self._z_target = self._js_z_pos
-        self._jog_dir = 0
-        self._publish_z_point(self._js_z_pos, 0.1)
+        self._jog_dir  = 0
+        self._publish_z_point(self._js_z_pos, 0.05)
         self._node.get_logger().info('[sim] Z stop')
 
 
@@ -194,7 +185,7 @@ class SimBackend(ActuatorBackend):
 
     def _publish_z_point(self, target_m: float, dt: float):
         msg = JointTrajectory()
-        msg.header.frame_id = 'base_link'
+        msg.header.frame_id = 'base_footprint'
         msg.joint_names = ['zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
         pt.positions       = [float(target_m), 0.0]
@@ -207,18 +198,27 @@ class SimBackend(ActuatorBackend):
     def spin_once(self):
         # No autonomous homing motion — homing is taught by the operator
         # via home_z()/teach_set_lower()/teach_set_upper(), not polled here.
+        now = time.time()
         if self._jog_dir != 0:
-            now = time.time()
             dt  = (now - self._jog_last_t) if self._jog_last_t else 0.0
             self._jog_last_t = now
             if dt > 0.0:
                 self._jog_target += self._jog_dir * self._jog_speed_mps * dt
                 self._jog_target  = max(0.0, min(self._z_max_m, self._jog_target))
-                self._publish_z_point(self._jog_target, 0.1)
+                self._publish_z_point(self._jog_target, 0.05)
 
-        if self._moving:
-            if abs(self._js_z_pos - self._z_target) <= 0.005:
+        elif self._moving:
+            dt = (now - getattr(self, '_move_last_t', now))
+            self._move_last_t = now
+            err = self._z_target - self._js_z_pos
+            if abs(err) <= 0.005:
                 self._moving = False
+                self._publish_z_point(self._z_target, 0.05)
+            elif dt > 0.0:
+                step = math.copysign(min(abs(err), self._sim_speed_mps * dt), err)
+                new_pos = self._js_z_pos + step
+                new_pos = max(0.0, min(self._z_max_m, new_pos))
+                self._publish_z_point(new_pos, 0.05)
 
 
 # ---------------------------------------------------------------------------
@@ -908,7 +908,14 @@ class ActuatorBridgeNode(Node):
         # envelope; the teach-homing range IS the limit.
         if getattr(self._backend, '_homed', False) and self._z_move_active:
             pos_mm = s['position_m'] * 1000.0
-            if pos_mm <= self._z_soft_lower_mm or pos_mm >= self._z_soft_upper_mm:
+            target_mm = getattr(self._backend, '_z_target', pos_mm / 1000.0) * 1000.0
+            jog_dir = getattr(self._backend, '_jog_dir', 0)
+
+            moving_down = (jog_dir < 0) or (target_mm < pos_mm - 1.0)
+            moving_up   = (jog_dir > 0) or (target_mm > pos_mm + 1.0)
+
+            if (pos_mm <= self._z_soft_lower_mm and moving_down) or \
+               (pos_mm >= self._z_soft_upper_mm and moving_up):
                 self._backend.stop_z()
                 self._z_move_active = False
                 self.get_logger().warn(
