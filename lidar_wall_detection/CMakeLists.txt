@@ -135,6 +135,17 @@ target_link_libraries(cloud_accumulator_node
   ${PCL_LIBRARIES}
 )
 
+# ── Executable: wall_depth_profile_node (Bridge vertical LiDAR to paint_planner) ─
+add_executable(wall_depth_profile_node
+  src/wall_depth_profile_node.cpp
+)
+
+ament_target_dependencies(wall_depth_profile_node
+  rclcpp
+  sensor_msgs
+  painting_robot_msgs
+)
+
 # ── Installation ───────────────────────────────────────────────────────────────
 install(
   TARGETS lidar_wall_detection_lib
@@ -152,6 +163,7 @@ install(
     cutout_window_detector
     wall_scan_to_pointcloud_node
     cloud_accumulator_node
+    wall_depth_profile_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

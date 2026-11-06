@@ -135,6 +135,16 @@ def generate_launch_description():
         condition=IfCondition(enable_3d_cloud)
     )
 
+    # 7. Wall Depth Profile Node (bridges vertical obstacle detection to /wall_depth_profile)
+    wall_depth_profile_node = Node(
+        package='lidar_wall_detection',
+        executable='wall_depth_profile_node',
+        name='wall_depth_profile_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        condition=IfCondition(enable_vertical)
+    )
+
     # RViz visualization
     rviz_node = Node(
         package='rviz2',
@@ -159,5 +169,6 @@ def generate_launch_description():
         cutout_detector_node,
         scan_to_cloud_node,
         cloud_accumulator_node,
+        wall_depth_profile_node,
         rviz_node
     ])

@@ -365,6 +365,15 @@ def generate_launch_description():
         condition=IfCondition(enable_vertical)
     )
 
+    wall_depth_profile_node = Node(
+        package='lidar_wall_detection',
+        executable='wall_depth_profile_node',
+        name='wall_depth_profile_node',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
+        condition=IfCondition(enable_vertical)
+    )
+
     return LaunchDescription([
         gazebo_model_path_env,
         # Args
@@ -398,6 +407,7 @@ def generate_launch_description():
         cutout_detector_node,
         scan_to_cloud_node,
         cloud_accumulator_node,
+        wall_depth_profile_node,
 
         # Painting
         paint_planner,

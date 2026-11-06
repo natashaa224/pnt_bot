@@ -341,6 +341,15 @@ def generate_launch_description():
         condition=IfCondition(enable_vertical)
     )
 
+    wall_depth_profile_node = Node(
+        package='lidar_wall_detection',
+        executable='wall_depth_profile_node',
+        name='wall_depth_profile_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        condition=IfCondition(enable_vertical)
+    )
+
     # ── 6. Safety Authority ───────────────────────────────────────────────────
     safety_monitor_node = Node(
         package='painting_robot_mcu',
@@ -465,6 +474,7 @@ def generate_launch_description():
         cutout_detector_node,
         scan_to_cloud_node,
         cloud_accumulator_node,
+        wall_depth_profile_node,
 
         # Safety & Actuation
         safety_monitor_node,
