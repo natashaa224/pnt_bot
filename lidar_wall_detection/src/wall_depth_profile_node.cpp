@@ -19,13 +19,18 @@ public:
       gantry_base_z_(0.41),
       lidar_z_ground_(1.35)
     {
-        this->declare_parameter("wall_nominal_dist", 0.75);
+        this->declare_parameter("wall_nominal_dist", 0.77);
+        this->declare_parameter("target_distance", 0.77);
         this->declare_parameter("obstacle_threshold", 0.07);
         this->declare_parameter("obstacle_margin", 0.05);
         this->declare_parameter("gantry_z_min", 0.0);
         this->declare_parameter("gantry_z_max", 1.20);
 
-        wall_nominal_dist_ = this->get_parameter("wall_nominal_dist").as_double();
+        wall_nominal_dist_ = this->get_parameter("target_distance").as_double();
+        if (this->has_parameter("wall_nominal_dist")) {
+            double wnd = this->get_parameter("wall_nominal_dist").as_double();
+            if (wnd > 0.0) wall_nominal_dist_ = wnd;
+        }
         obstacle_threshold_ = this->get_parameter("obstacle_threshold").as_double();
         margin_ = this->get_parameter("obstacle_margin").as_double();
         z_min_ = this->get_parameter("gantry_z_min").as_double();

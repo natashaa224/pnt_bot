@@ -73,16 +73,16 @@
             </collision>
         </link>
 
-        <!-- Paint Spray Gun Joint -->
-        <joint name="wrist_joint" type="prismatic">
+        <!-- Paint Spray Gun Joint (Wrist Pitch Servo) -->
+        <joint name="wrist_joint" type="revolute">
             <origin xyz="0.0965 0 0.033" rpy="0 0 0" />
             <parent link="height_adj_link" />
             <child link="paint_spray_gun_link" />
-            <axis xyz="0 0 1" />
-            <limit lower="0"
-                upper="1.4"
-                effort="200"
-                velocity="0.3" />
+            <axis xyz="0 1 0" />
+            <limit lower="-0.8"
+                upper="0.8"
+                effort="50"
+                velocity="1.0" />
         </joint>
 
         <!-- Gazebo joint properties for implicit solver stability to prevent payload vibration -->

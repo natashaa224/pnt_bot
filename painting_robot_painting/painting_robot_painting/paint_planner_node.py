@@ -87,6 +87,13 @@ class PaintPlannerNode(Node):
             z_min = self.get_parameter('strip_z_min').value
             z_max = self.get_parameter('strip_z_max').value
 
+        # Adapt stroke upper bound to wherever wall is detected by vertical LiDAR
+        if self._latest_profile is not None and self._latest_profile.z_positions:
+            wall_zs = [z for z, p in zip(self._latest_profile.z_positions, self._latest_profile.paintable) if p]
+            if wall_zs:
+                detected_top = max(wall_zs)
+                z_max = max(float(z_min) + 0.20, min(float(z_max), float(detected_top)))
+
         msg = StripMap()
         msg.strip_z_min  = float(z_min)
         msg.strip_z_max  = float(z_max)
@@ -107,17 +114,17 @@ class PaintPlannerNode(Node):
     def _build_zones(self, profile: WallDepthProfile,
                     z_min: float, z_max: float):
         """Run-length encode per-sample paintability into contiguous zones."""
-        if not profile.z_positions:
+        # Pair and sort by Z within [z_min, z_max]
+        samples = [s for s in sorted(zip(profile.z_positions, profile.paintable))
+                   if float(z_min) <= s[0] <= float(z_max)]
+        if not samples:
             return [float(z_min)], [float(z_max)], [True]
-
-        # Pair and sort by Z
-        samples = sorted(zip(profile.z_positions, profile.paintable))
 
         z_starts, z_ends, paint_flags = [], [], []
         cur_paint = samples[0][1]
         cur_start = float(z_min)
 
-        for i, (z, paint) in enumerate(samples):
+        for z, paint in samples:
             if paint != cur_paint:
                 z_ends.append(z)
                 z_starts.append(cur_start)

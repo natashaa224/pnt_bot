@@ -86,6 +86,9 @@ class SimBackend(ActuatorBackend):
         node.create_subscription(
             JointState, '/joint_states', self._joint_state_cb, 10)
 
+    def _now_s(self) -> float:
+        return self._node.get_clock().now().nanoseconds * 1e-9
+
     def _joint_state_cb(self, msg: JointState):
         if 'zAxis_joint' in msg.name:
             idx = msg.name.index('zAxis_joint')
@@ -95,7 +98,7 @@ class SimBackend(ActuatorBackend):
         target_m              = max(0.0, min(self._z_max_m, target_m))
         self._z_target        = target_m
         self._moving          = True
-        self._move_last_t     = time.time()
+        self._move_last_t     = self._now_s()
         self._sim_z_pos       = self._js_z_pos
         dist                  = abs(target_m - self._js_z_pos)
         self._move_duration   = max(0.5, dist / self._sim_speed_mps)
@@ -184,7 +187,7 @@ class SimBackend(ActuatorBackend):
             return
         self._sim_z_pos  = self._js_z_pos
         self._jog_target = self._js_z_pos
-        self._jog_last_t = time.time()
+        self._jog_last_t = self._now_s()
         self._moving     = True
         self._node.get_logger().info(f'[sim] jog_z dir={self._jog_dir:+d}')
 
@@ -202,7 +205,7 @@ class SimBackend(ActuatorBackend):
     def spin_once(self):
         # No autonomous homing motion — homing is taught by the operator
         # via home_z()/teach_set_lower()/teach_set_upper(), not polled here.
-        now = time.time()
+        now = self._now_s()
         if self._jog_dir != 0:
             dt  = (now - self._jog_last_t) if self._jog_last_t else 0.0
             self._jog_last_t = now

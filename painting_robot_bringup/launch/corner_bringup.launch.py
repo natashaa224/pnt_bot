@@ -45,6 +45,27 @@ def generate_launch_description():
     )
     fake_paint = LaunchConfiguration('fake_paint')
 
+    enable_internal_arg = DeclareLaunchArgument(
+        'enable_internal',
+        default_value='false',
+        description='Enable internal corner detection in env_monitoring_v2'
+    )
+    enable_internal = LaunchConfiguration('enable_internal')
+
+    enable_external_arg = DeclareLaunchArgument(
+        'enable_external',
+        default_value='false',
+        description='Enable external corner detection in env_monitoring_v2'
+    )
+    enable_external = LaunchConfiguration('enable_external')
+
+    enable_bumpout_arg = DeclareLaunchArgument(
+        'enable_bumpout',
+        default_value='false',
+        description='Enable bumpout detection in env_monitoring_v2'
+    )
+    enable_bumpout = LaunchConfiguration('enable_bumpout')
+
     headless_arg = DeclareLaunchArgument(
         'headless',
         default_value='false',
@@ -263,10 +284,9 @@ def generate_launch_description():
             os.path.join(pkg_bringup, 'config', 'env_monitoring_params.yaml'),
             {
                 'use_sim_time': True,
-                # booleans kept inline for quick on/off from the launch file
-                'enable_internal':  True,
-                'enable_external':  True,
-                'enable_bumpout':   True,
+                'enable_internal':  enable_internal,
+                'enable_external':  enable_external,
+                'enable_bumpout':   enable_bumpout,
                 'fake_paint':       fake_paint,
             }
         ]
@@ -377,7 +397,10 @@ def generate_launch_description():
         executable='wall_depth_profile_node',
         name='wall_depth_profile_node',
         output='screen',
-        parameters=[{'use_sim_time': True}],
+        parameters=[
+            common_alignment_params,
+            {'use_sim_time': True}
+        ],
         condition=IfCondition(enable_vertical)
     )
 
@@ -394,6 +417,9 @@ def generate_launch_description():
         DeclareLaunchArgument('spawn_yaw', default_value='0.0'),
         wall_detection_pkg_arg,
         fake_paint_arg,
+        enable_internal_arg,
+        enable_external_arg,
+        enable_bumpout_arg,
         rviz_arg,
 
         # Sim
