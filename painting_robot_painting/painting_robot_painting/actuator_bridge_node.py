@@ -65,6 +65,7 @@ class SimBackend(ActuatorBackend):
         self._z_target        = 0.0
         self._moving          = False
         self._js_z_pos        = 0.0
+        self._sim_z_pos       = 0.0
         self._move_start_time = None
         self._move_duration   = 1.0
         self._jog_dir       = 0
@@ -95,6 +96,7 @@ class SimBackend(ActuatorBackend):
         self._z_target        = target_m
         self._moving          = True
         self._move_last_t     = time.time()
+        self._sim_z_pos       = self._js_z_pos
         dist                  = abs(target_m - self._js_z_pos)
         self._move_duration   = max(0.5, dist / self._sim_speed_mps)
 
@@ -102,10 +104,11 @@ class SimBackend(ActuatorBackend):
             f'[sim] Z move → {target_m:.3f}m from {self._js_z_pos:.3f}m (est {self._move_duration:.1f}s)')
 
     def stop_z(self):
-        self._moving   = False
-        self._z_target = self._js_z_pos
-        self._jog_dir  = 0
-        self._publish_z_point(self._js_z_pos, 0.05)
+        self._moving    = False
+        self._z_target  = self._js_z_pos
+        self._sim_z_pos = self._js_z_pos
+        self._jog_dir   = 0
+        self._publish_z_point(self._js_z_pos)
         self._node.get_logger().info('[sim] Z stop')
 
 
@@ -162,7 +165,7 @@ class SimBackend(ActuatorBackend):
         self._wrist_deg = angle_deg
         self._node.get_logger().info(f'[sim] wrist → {angle_deg:.1f}°',
                                      throttle_duration_sec=0.5)
-        self._publish_z_point(self._js_z_pos, 0.05)
+        self._publish_z_point(getattr(self, '_sim_z_pos', self._js_z_pos))
 
     def get_wrist_deg(self) -> float:
         return getattr(self, '_wrist_deg', 0.0)
@@ -179,23 +182,22 @@ class SimBackend(ActuatorBackend):
         if self._jog_dir == 0:
             self._moving = False
             return
+        self._sim_z_pos  = self._js_z_pos
         self._jog_target = self._js_z_pos
         self._jog_last_t = time.time()
         self._moving     = True
         self._node.get_logger().info(f'[sim] jog_z dir={self._jog_dir:+d}')
 
-    def _publish_z_point(self, target_m: float, dt: float):
+    def _publish_z_point(self, target_m: float):
         msg = JointTrajectory()
         msg.header.frame_id = 'base_footprint'
         msg.joint_names = ['zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
         wrist_rad = math.radians(getattr(self, '_wrist_deg', 0.0))
         pt.positions       = [float(target_m), float(wrist_rad)]
-        sec  = int(dt)
-        nsec = int((dt - sec) * 1e9)
-        pt.time_from_start = Duration(sec=sec, nanosec=nsec)
+        pt.time_from_start = Duration(sec=0, nanosec=0)
         msg.points = [pt]
-        self._traj_pub.publish(msg)    
+        self._traj_pub.publish(msg)
 
     def spin_once(self):
         # No autonomous homing motion — homing is taught by the operator
@@ -207,20 +209,22 @@ class SimBackend(ActuatorBackend):
             if dt > 0.0:
                 self._jog_target += self._jog_dir * self._jog_speed_mps * dt
                 self._jog_target  = max(0.0, min(self._z_max_m, self._jog_target))
-                self._publish_z_point(self._jog_target, 0.05)
+                self._sim_z_pos   = self._jog_target
+                self._publish_z_point(self._sim_z_pos)
 
         elif self._moving:
             dt = (now - getattr(self, '_move_last_t', now))
             self._move_last_t = now
-            err = self._z_target - self._js_z_pos
+            err = self._z_target - getattr(self, '_sim_z_pos', self._js_z_pos)
             if abs(err) <= 0.005:
+                self._sim_z_pos = self._z_target
                 self._moving = False
-                self._publish_z_point(self._z_target, 0.05)
+                self._publish_z_point(self._sim_z_pos)
             elif dt > 0.0:
                 step = math.copysign(min(abs(err), self._sim_speed_mps * dt), err)
-                new_pos = self._js_z_pos + step
-                new_pos = max(0.0, min(self._z_max_m, new_pos))
-                self._publish_z_point(new_pos, 0.05)
+                self._sim_z_pos = getattr(self, '_sim_z_pos', self._js_z_pos) + step
+                self._sim_z_pos = max(0.0, min(self._z_max_m, self._sim_z_pos))
+                self._publish_z_point(self._sim_z_pos)
 
 
 # ---------------------------------------------------------------------------
