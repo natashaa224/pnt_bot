@@ -162,6 +162,7 @@ class SimBackend(ActuatorBackend):
         self._wrist_deg = angle_deg
         self._node.get_logger().info(f'[sim] wrist → {angle_deg:.1f}°',
                                      throttle_duration_sec=0.5)
+        self._publish_z_point(self._js_z_pos, 0.05)
 
     def get_wrist_deg(self) -> float:
         return getattr(self, '_wrist_deg', 0.0)
@@ -188,7 +189,8 @@ class SimBackend(ActuatorBackend):
         msg.header.frame_id = 'base_footprint'
         msg.joint_names = ['zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
-        pt.positions       = [float(target_m), 0.0]
+        wrist_rad = math.radians(getattr(self, '_wrist_deg', 0.0))
+        pt.positions       = [float(target_m), float(wrist_rad)]
         sec  = int(dt)
         nsec = int((dt - sec) * 1e9)
         pt.time_from_start = Duration(sec=sec, nanosec=nsec)
