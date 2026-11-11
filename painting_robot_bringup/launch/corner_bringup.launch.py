@@ -16,7 +16,7 @@ def generate_launch_description():
     pkg_bringup  = get_package_share_directory('painting_robot_bringup')
     pkg_painting = get_package_share_directory('painting_robot_painting')
 
-    painting_params  = os.path.join(pkg_painting, 'config', 'actuator_bridge_params.yaml')
+    painting_params  = os.path.join(pkg_bringup, 'config', 'actuator_bridge_params.yaml')
     gazebo_params_file = os.path.join(pkg_bringup, 'config', 'gazebo_params.yaml')
     world_file = LaunchConfiguration('world')
     pkg_description = get_package_share_directory('paint_bot_description')
@@ -65,6 +65,13 @@ def generate_launch_description():
         description='Enable bumpout detection in env_monitoring_v2'
     )
     enable_bumpout = LaunchConfiguration('enable_bumpout')
+
+    z_speed_arg = DeclareLaunchArgument(
+        'z_speed',
+        default_value='0.8',
+        description='Gantry linear stroke speed in m/s (default: 0.8)'
+    )
+    z_speed = LaunchConfiguration('z_speed')
 
     headless_arg = DeclareLaunchArgument(
         'headless',
@@ -315,7 +322,16 @@ def generate_launch_description():
         package='painting_robot_painting',
         executable='actuator_bridge_node',
         output='screen',
-        parameters=[painting_params, {'use_sim_time': True,'hardware_backend': 'sim','enable_odom': False}]
+        parameters=[
+            painting_params,
+            {
+                'use_sim_time': True,
+                'hardware_backend': 'sim',
+                'enable_odom': False,
+                'z_sim_speed_mps': z_speed,
+                'z_paint_speed_mps': z_speed,
+            }
+        ]
     )
 
 
@@ -420,6 +436,7 @@ def generate_launch_description():
         enable_internal_arg,
         enable_external_arg,
         enable_bumpout_arg,
+        z_speed_arg,
         rviz_arg,
 
         # Sim

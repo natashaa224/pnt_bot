@@ -599,9 +599,9 @@ class ActuatorBridgeNode(Node):
         self.declare_parameter('z_decel_up_ms',   120)
         self.declare_parameter('z_accel_down_ms', 180)
         self.declare_parameter('z_decel_down_ms', 100)
-        self.declare_parameter('z_paint_speed_mps', 0.6)   # paint stroke speed (m/s)
+        self.declare_parameter('z_paint_speed_mps', 0.8)   # paint stroke speed (m/s)
         self.declare_parameter('z_max_m',           1.2)
-        self.declare_parameter('z_sim_speed_mps',   0.3)
+        self.declare_parameter('z_sim_speed_mps',   0.8)
         self.declare_parameter('strip_z_max',       1.2)
         self.declare_parameter('solenoid_gpio_pin', 17)
 
@@ -940,13 +940,16 @@ class ActuatorBridgeNode(Node):
         pub.limit_upper_z    = False
         pub.z_soft_lower_mm  = float(self._z_soft_lower_mm)
         pub.z_soft_upper_mm  = float(self._z_soft_upper_mm)
-        # Wrist is on its own serial port; poll at ~5 Hz so it doesn't slow the 50 Hz loop
-        self._wrist_poll = getattr(self, '_wrist_poll', 0) + 1
-        if self._wrist_poll % 10 == 0:
+        # Wrist is on its own serial port; poll at ~5 Hz so it doesn't slow the 50 Hz loop (in sim update immediately)
+        if isinstance(self._backend, SimBackend):
             self._wrist_actual_deg = self._backend.get_wrist_deg()
-            self.get_logger().debug(
-                f'[wrist] actual={self._wrist_actual_deg:.1f}°',
-                throttle_duration_sec=0.5)
+        else:
+            self._wrist_poll = getattr(self, '_wrist_poll', 0) + 1
+            if self._wrist_poll % 10 == 0:
+                self._wrist_actual_deg = self._backend.get_wrist_deg()
+                self.get_logger().debug(
+                    f'[wrist] actual={self._wrist_actual_deg:.1f}°',
+                    throttle_duration_sec=0.5)
         pub.wrist_actual_deg = float(getattr(self, '_wrist_actual_deg', 0.0))
         pub.paint_level      = 1.0
         self._state_pub.publish(pub)

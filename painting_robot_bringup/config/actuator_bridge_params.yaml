@@ -23,7 +23,8 @@ actuator_bridge_node:
     z_decel_up_ms:      120        # decel while ascending (gravity assists the stop)
     z_accel_down_ms:    180        # accel while descending (gravity assists — hold it back, larger=gentler)
     z_decel_down_ms:    100        # decel while descending (fighting gravity — firm stop)  
-    z_paint_speed_mps: 0.6      # paint stroke speed (→ ~2074 rpm)
+    z_paint_speed_mps: 0.8      # paint stroke speed (→ ~2765 rpm)
+    z_sim_speed_mps:   0.8      # simulation gantry stroke speed (m/s)
 
 
     # solenoid
