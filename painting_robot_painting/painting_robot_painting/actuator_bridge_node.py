@@ -29,6 +29,7 @@ from nav_msgs.msg import Odometry
 from painting_robot_msgs.msg import ZAxisCmd, WristCmd, SprayCmd, PaintHeadStatus, GantryLimitCmd, SafetyCommand
 import tf2_ros
 from std_msgs.msg import String
+from std_msgs.msg import Float32
 
 # ---------------------------------------------------------------------------
 # Backend base
@@ -57,6 +58,14 @@ class ActuatorBackend:
 # ---------------------------------------------------------------------------
 class SimBackend(ActuatorBackend):
 
+    # Maximum travel of the NORMAL gantry (zAxis_joint).
+    # Must match the URDF limit upper="1.2".
+    Z_NORMAL_MAX_M = 1.2
+
+    # Maximum travel of the AUXILIARY extension (extension_joint).
+    # Must match the URDF limit upper="0.6".
+    EXT_MAX_M = 0.6
+
     def __init__(self, node: Node):
         super().__init__()
         self._node            = node
@@ -79,6 +88,17 @@ class SimBackend(ActuatorBackend):
         self._upper_set       = True
         self._homed           = True
 
+        # ------------------------------------------------------------------ #
+        # Auxiliary extension state — INDEPENDENT from zAxis_joint.           #
+        # extension_joint is commanded only when strip_z_max > Z_NORMAL_MAX_M  #
+        # It stops once the required extension is reached and stays there.    #
+        # ------------------------------------------------------------------ #
+        self._ext_pos_m       = 0.0   # simulated extension position
+        self._ext_js_pos_m    = 0.0   # last joint-state reading of extension_joint
+        self._ext_target_m    = 0.0   # desired extension position
+        self._ext_moving      = False
+        self._ext_speed_mps   = 0.3   # extension axis is slower than gantry
+
         self._traj_pub = node.create_publisher(
             JointTrajectory,
             '/paint_axis_controller/joint_trajectory', 10)
@@ -93,7 +113,13 @@ class SimBackend(ActuatorBackend):
         if 'zAxis_joint' in msg.name:
             idx = msg.name.index('zAxis_joint')
             self._js_z_pos = msg.position[idx]
+        if 'extension_joint' in msg.name:
+            idx = msg.name.index('extension_joint')
+            self._ext_js_pos_m = msg.position[idx]
 
+    # ---------------------------------------------------------------------- #
+    # Normal gantry (zAxis_joint) control                                     #
+    # ---------------------------------------------------------------------- #
     def move_z(self, target_m: float, rpm: int):
         target_m              = max(0.0, min(self._z_max_m, target_m))
         self._z_target        = target_m
@@ -111,9 +137,44 @@ class SimBackend(ActuatorBackend):
         self._z_target  = self._js_z_pos
         self._sim_z_pos = self._js_z_pos
         self._jog_dir   = 0
-        self._publish_z_point(self._js_z_pos)
+        self._publish_traj(self._js_z_pos)
         self._node.get_logger().info('[sim] Z stop')
 
+    # ---------------------------------------------------------------------- #
+    # Auxiliary extension (extension_joint) control — INDEPENDENT             #
+    # Called from ActuatorBridgeNode._ext_cmd_cb() only.                     #
+    # Must NOT be driven from wrist or zAxis movement.                       #
+    # ---------------------------------------------------------------------- #
+    def move_extension(self, target_m: float):
+        """Move the auxiliary extension to target_m (0.0–EXT_MAX_M).
+        Clamps to joint limits. The extension moves at ext_speed_mps and
+        stops automatically in spin_once() when the target is reached.
+        This method is intentionally separate from move_z() so there is
+        zero coupling between normal gantry stroke and extension motion.
+        """
+        target_m = max(0.0, min(self.EXT_MAX_M, target_m))
+        if abs(target_m - self._ext_pos_m) < 0.005:
+            self._node.get_logger().info(
+                f'[sim] extension already at {self._ext_pos_m:.3f}m — no movement needed')
+            return
+        self._ext_target_m = target_m
+        self._ext_moving   = True
+        self._node.get_logger().info(
+            f'[sim] extension move → {target_m:.3f}m from {self._ext_pos_m:.3f}m')
+
+    def stop_extension(self):
+        """Hard-stop the extension and hold position."""
+        self._ext_moving   = False
+        self._ext_target_m = self._ext_pos_m
+        self._publish_traj(self._sim_z_pos)
+        self._node.get_logger().info(f'[sim] extension stopped at {self._ext_pos_m:.3f}m')
+
+    def get_extension_state(self) -> dict:
+        return {
+            'position_m': self._ext_pos_m,
+            'moving':     self._ext_moving,
+            'target_m':   self._ext_target_m,
+        }
 
     def clear_limits(self):
         self._homed     = False
@@ -168,7 +229,7 @@ class SimBackend(ActuatorBackend):
         self._wrist_deg = angle_deg
         self._node.get_logger().info(f'[sim] wrist → {angle_deg:.1f}°',
                                      throttle_duration_sec=0.5)
-        self._publish_z_point(getattr(self, '_sim_z_pos', self._js_z_pos))
+        self._publish_traj(getattr(self, '_sim_z_pos', self._js_z_pos))
 
     def get_wrist_deg(self) -> float:
         return getattr(self, '_wrist_deg', 0.0)
@@ -191,21 +252,44 @@ class SimBackend(ActuatorBackend):
         self._moving     = True
         self._node.get_logger().info(f'[sim] jog_z dir={self._jog_dir:+d}')
 
-    def _publish_z_point(self, target_m: float):
+    def _publish_traj(self, z_target_m: float):
+        """Publish a JointTrajectory covering zAxis_joint, wrist_joint AND
+        extension_joint in a single message so the trajectory controller
+        moves all three joints in one command. The extension position is
+        always self._ext_pos_m (simulated) so it only changes when
+        move_extension() / spin_once() advance it — never from this call alone.
+        """
         msg = JointTrajectory()
         msg.header.frame_id = 'base_footprint'
-        msg.joint_names = ['zAxis_joint', 'wrist_joint']
+        msg.joint_names = ['extension_joint', 'zAxis_joint', 'wrist_joint']
         pt  = JointTrajectoryPoint()
         wrist_rad = math.radians(getattr(self, '_wrist_deg', 0.0))
-        pt.positions       = [float(target_m), float(wrist_rad)]
+        pt.positions       = [float(self._ext_pos_m), float(z_target_m), float(wrist_rad)]
         pt.time_from_start = Duration(sec=0, nanosec=0)
         msg.points = [pt]
         self._traj_pub.publish(msg)
 
     def spin_once(self):
-        # No autonomous homing motion — homing is taught by the operator
-        # via home_z()/teach_set_lower()/teach_set_upper(), not polled here.
         now = self._now_s()
+
+        # --- Extension integration (independent of Z jog/move) ---
+        if self._ext_moving:
+            dt = now - getattr(self, '_ext_last_t', now)
+            self._ext_last_t = now
+            if dt > 0.0:
+                err = self._ext_target_m - self._ext_pos_m
+                if abs(err) <= 0.004:
+                    self._ext_pos_m  = self._ext_target_m
+                    self._ext_moving = False
+                    self._node.get_logger().info(
+                        f'[sim] extension reached target {self._ext_pos_m:.3f}m — STOPPED')
+                else:
+                    step = math.copysign(min(abs(err), self._ext_speed_mps * dt), err)
+                    self._ext_pos_m = max(0.0, min(self.EXT_MAX_M, self._ext_pos_m + step))
+        else:
+            self._ext_last_t = now
+
+        # --- Normal gantry jog ---
         if self._jog_dir != 0:
             dt  = (now - self._jog_last_t) if self._jog_last_t else 0.0
             self._jog_last_t = now
@@ -213,8 +297,9 @@ class SimBackend(ActuatorBackend):
                 self._jog_target += self._jog_dir * self._jog_speed_mps * dt
                 self._jog_target  = max(0.0, min(self._z_max_m, self._jog_target))
                 self._sim_z_pos   = self._jog_target
-                self._publish_z_point(self._sim_z_pos)
+                self._publish_traj(self._sim_z_pos)
 
+        # --- Normal gantry position move ---
         elif self._moving:
             dt = (now - getattr(self, '_move_last_t', now))
             self._move_last_t = now
@@ -222,12 +307,12 @@ class SimBackend(ActuatorBackend):
             if abs(err) <= 0.005:
                 self._sim_z_pos = self._z_target
                 self._moving = False
-                self._publish_z_point(self._sim_z_pos)
+                self._publish_traj(self._sim_z_pos)
             elif dt > 0.0:
                 step = math.copysign(min(abs(err), self._sim_speed_mps * dt), err)
                 self._sim_z_pos = getattr(self, '_sim_z_pos', self._js_z_pos) + step
                 self._sim_z_pos = max(0.0, min(self._z_max_m, self._sim_z_pos))
-                self._publish_z_point(self._sim_z_pos)
+                self._publish_traj(self._sim_z_pos)
 
 
 # ---------------------------------------------------------------------------
@@ -676,6 +761,12 @@ class ActuatorBridgeNode(Node):
             Twist, '/paint_bot/cmd_vel', self._base_cmd_cb, 1)
         self.create_subscription(GantryLimitCmd, '/gantry_limit_cmd', self._gantry_limit_cb, 10)
 
+        # Extension joint command — INDEPENDENT from /z_axis_cmd.
+        # Accepts a Float32 target in metres (0.0 to EXT_MAX_M).
+        # Only paint_executor_node publishes here, and ONLY when
+        # strip_z_max > z_max_m.  Normal wrist/gantry motion NEVER touches this.
+        self.create_subscription(Float32, '/extension_cmd', self._ext_cmd_cb, 5)
+
         # /safety_command is the single authority for the stop state (tier + reason).
         self.create_subscription(SafetyCommand, '/safety_command', self._safety_cmd_cb, 10)
 
@@ -886,6 +977,39 @@ class ActuatorBridgeNode(Node):
 
     def _spray_cb(self, msg: SprayCmd):
         self._backend.set_spray(msg.valve_open)
+        self._spray_active = bool(msg.valve_open)  # guard for extension motion
+
+    def _ext_cmd_cb(self, msg: Float32):
+        """Auxiliary extension joint command callback.
+
+        Receives a target position in metres and forwards it ONLY to the
+        extension backend method — never to zAxis_joint or wrist_joint.
+        Blocked entirely during any motion-stop tier (HOLD/FAULT/ESTOP).
+        Extension motion is also blocked while spray is active to prevent
+        moving the paint head while painting.
+        """
+        if self._motion_stop:
+            self.get_logger().warn(
+                f'[bridge] extension_cmd ignored — motion stop active ({self._motion_stop})')
+            return
+
+        # Safety: refuse to move extension while spray is on
+        # (_spray_state is tracked by the backend in SimBackend as a log-only op;
+        #  we track it here independently for the guard)
+        if getattr(self, '_spray_active', False):
+            self.get_logger().warn(
+                '[bridge] extension_cmd BLOCKED — spray is active, cannot move extension mid-paint')
+            return
+
+        target_m = float(msg.data)
+        backend = self._backend
+
+        if isinstance(backend, SimBackend):
+            backend.move_extension(target_m)
+        else:
+            # SBC backend: log the command — hardware implementation TBD
+            self.get_logger().info(
+                f'[bridge] extension_cmd {target_m:.3f}m — SBC extension not implemented')
 
     def _base_cmd_cb(self, msg: Twist):
         if self._motion_stop:
@@ -952,6 +1076,19 @@ class ActuatorBridgeNode(Node):
                     throttle_duration_sec=0.5)
         pub.wrist_actual_deg = float(getattr(self, '_wrist_actual_deg', 0.0))
         pub.paint_level      = 1.0
+
+        # Log extension state at ~1 Hz (every 50 ticks) so the operator can
+        # see the extension position without flooding the terminal.
+        if isinstance(self._backend, SimBackend):
+            ext_state = self._backend.get_extension_state()
+            self._ext_log_tick = getattr(self, '_ext_log_tick', 0) + 1
+            if self._ext_log_tick % 50 == 0:
+                self.get_logger().info(
+                    f'[bridge] extension pos={ext_state["position_m"]:.3f}m '
+                    f'target={ext_state["target_m"]:.3f}m '
+                    f'moving={ext_state["moving"]}',
+                    throttle_duration_sec=1.0)
+
         self._state_pub.publish(pub)
 
     # -------------------------------------------------------------------------

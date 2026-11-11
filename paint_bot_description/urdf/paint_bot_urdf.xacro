@@ -74,6 +74,7 @@
             <update_rate>50</update_rate>
             <joint_name>left_wheel_joint</joint_name>
             <joint_name>right_wheel_joint</joint_name>
+            <joint_name>extension_joint</joint_name>
             <joint_name>zAxis_joint</joint_name>
             <joint_name>wrist_joint</joint_name>
         </plugin>

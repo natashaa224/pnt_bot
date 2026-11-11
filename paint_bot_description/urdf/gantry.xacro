@@ -3,7 +3,58 @@
 
     <xacro:macro name="gantry" params="parent xyz rpy">
 
-        <!-- Height Adj Link -->
+        <!-- ============================================================== -->
+        <!-- Auxiliary Extension Link                                        -->
+        <!-- This is the outer gantry extension carriage (circled in red).  -->
+        <!-- It is a separate prismatic stage mounted on the base frame.     -->
+        <!-- It ONLY moves when the painting target exceeds the normal       -->
+        <!-- gantry's 1.2 m reach. During normal painting it stays at 0.0.  -->
+        <!-- ============================================================== -->
+        <link name="extension_link">
+            <inertial>
+                <origin xyz="0 0 0.1" rpy="0 0 0" />
+                <mass value="1.5" />
+                <inertia ixx="0.02"
+                        ixy="0"
+                        ixz="0"
+                        iyy="0.02"
+                        iyz="0"
+                        izz="0.005" />
+            </inertial>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <!-- Represent extension carriage as a thin box -->
+                    <box size="0.08 0.06 0.30" />
+                </geometry>
+                <material name="ext_orange">
+                    <color rgba="0.9 0.5 0.1 1" />
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0 0 0.1" rpy="0 0 0" />
+                <geometry>
+                    <box size="0.08 0.06 0.30" />
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- Auxiliary Extension Joint (independent prismatic stage, +Z axis) -->
+        <!-- This joint moves ONLY when strip_z_max > z_max_m (normal gantry limit). -->
+        <!-- It must NOT be coupled to zAxis_joint or wrist_joint motion.             -->
+        <joint name="extension_joint" type="prismatic">
+            <origin xyz="${xyz}" rpy="${rpy}" />
+            <parent link="${parent}" />
+            <child link="extension_link" />
+            <axis xyz="0 0 1" />
+            <limit lower="0.0"
+                   upper="0.6"
+                   effort="400"
+                   velocity="0.5" />
+            <dynamics damping="10.0" friction="2.0" />
+        </joint>
+
+        <!-- Height Adj Link — child of extension_link so it benefits from extra reach -->
         <link name="height_adj_link">
             <inertial>
                 <origin xyz="0.022628 -0.00010699 0.64618" rpy="0 0 0" />
@@ -33,10 +84,11 @@
             </collision>
         </link>
 
-        <!-- Height Adj Joint -->
+        <!-- Height Adj Joint — parent is now extension_link so combined reach =
+             extension_joint position + zAxis_joint position (up to 1.2 m + 0.6 m = 1.8 m) -->
         <joint name="zAxis_joint" type="prismatic">
-            <origin xyz="${xyz}" rpy="${rpy}" />
-            <parent link="${parent}" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="extension_link" />
             <child link="height_adj_link" />
             <axis xyz="0 0 1" />
             <limit lower="0"
@@ -86,11 +138,20 @@
         </joint>
 
         <!-- Gazebo joint properties for implicit solver stability to prevent payload vibration -->
+        <gazebo reference="extension_joint">
+            <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
         <gazebo reference="zAxis_joint">
             <implicitSpringDamper>true</implicitSpringDamper>
         </gazebo>
         <gazebo reference="wrist_joint">
             <implicitSpringDamper>true</implicitSpringDamper>
+        </gazebo>
+
+        <!-- Gazebo properties for extension link -->
+        <gazebo reference="extension_link">
+            <material>Gazebo/Orange</material>
+            <gravity>0</gravity>
         </gazebo>
 
         <!-- Gazebo properties for Gantry -->

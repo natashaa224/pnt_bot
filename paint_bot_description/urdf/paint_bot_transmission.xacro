@@ -30,6 +30,14 @@
                 <state_interface name="velocity"/>
             </joint>
 
+            <!-- AUXILIARY EXTENSION JOINT — independent prismatic stage -->
+            <!-- Only moves when painting target exceeds normal gantry reach (1.2 m) -->
+            <joint name="extension_joint">
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+
             <joint name="wrist_joint">
                 <command_interface name="position"/>
                 <state_interface name="position"/>
