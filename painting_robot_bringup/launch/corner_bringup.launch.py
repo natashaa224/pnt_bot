@@ -422,7 +422,11 @@ def generate_launch_description():
         output='screen',
         parameters=[
             common_alignment_params,
-            {'use_sim_time': True}
+            {
+                'use_sim_time': True,
+                'obstacle_threshold': 0.020,
+                'obstacle_margin': 0.050,
+            }
         ],
         condition=IfCondition(enable_vertical)
     )
