@@ -13,24 +13,19 @@ public:
     : Node("wall_depth_profile_node"),
       z_min_(0.0),
       z_max_(1.2),
-      wall_nominal_dist_(0.75),
-      obstacle_threshold_(0.07),
+      wall_nominal_dist_(0.41),
+      obstacle_threshold_(0.06),
       margin_(0.05),
       gantry_base_z_(0.41),
       lidar_z_ground_(1.35)
     {
-        this->declare_parameter("wall_nominal_dist", 0.77);
-        this->declare_parameter("target_distance", 0.77);
-        this->declare_parameter("obstacle_threshold", 0.07);
+        this->declare_parameter("wall_nominal_dist", 0.41);
+        this->declare_parameter("obstacle_threshold", 0.06);
         this->declare_parameter("obstacle_margin", 0.05);
         this->declare_parameter("gantry_z_min", 0.0);
         this->declare_parameter("gantry_z_max", 1.20);
 
-        wall_nominal_dist_ = this->get_parameter("target_distance").as_double();
-        if (this->has_parameter("wall_nominal_dist")) {
-            double wnd = this->get_parameter("wall_nominal_dist").as_double();
-            if (wnd > 0.0) wall_nominal_dist_ = wnd;
-        }
+        wall_nominal_dist_ = this->get_parameter("wall_nominal_dist").as_double();
         obstacle_threshold_ = this->get_parameter("obstacle_threshold").as_double();
         margin_ = this->get_parameter("obstacle_margin").as_double();
         z_min_ = this->get_parameter("gantry_z_min").as_double();
@@ -63,14 +58,41 @@ private:
     {
         if (msg->ranges.empty()) return;
 
+        // Pass 1: Dynamically determine flat wall surface distance using median of valid beams
+        std::vector<double> valid_y;
+        valid_y.reserve(msg->ranges.size());
+        double angle = msg->angle_min;
+        for (size_t i = 0; i < msg->ranges.size(); ++i) {
+            float r = msg->ranges[i];
+            double cur_angle = angle;
+            angle += msg->angle_increment;
+
+            if (!std::isfinite(r) || r < msg->range_min || r > 4.5) continue;
+            double sin_a = std::sin(cur_angle);
+            if (sin_a >= 0.0) continue;
+
+            double y_dist = std::abs(r * sin_a);
+            if (y_dist >= 0.20 && y_dist <= 1.50) {
+                valid_y.push_back(y_dist);
+            }
+        }
+
+        double d_nominal = wall_nominal_dist_;
+        if (valid_y.size() >= 15) {
+            size_t mid_idx = valid_y.size() / 2;
+            std::nth_element(valid_y.begin(), valid_y.begin() + mid_idx, valid_y.end());
+            d_nominal = valid_y[mid_idx];
+        }
+
         const int NUM_BINS = 100;
         double stroke_span = std::max(0.2, z_max_ - z_min_);
         double dz = stroke_span / NUM_BINS;
 
         std::vector<bool> bin_is_obstacle(NUM_BINS, false);
-        std::vector<float> bin_depth(NUM_BINS, static_cast<float>(wall_nominal_dist_));
+        std::vector<float> bin_depth(NUM_BINS, static_cast<float>(d_nominal));
 
-        double angle = msg->angle_min;
+        // Pass 2: Project beams onto gantry Z stroke coordinates and detect obstacles/cutouts
+        angle = msg->angle_min;
         for (size_t i = 0; i < msg->ranges.size(); ++i) {
             float r = msg->ranges[i];
             double cur_angle = angle;
@@ -101,12 +123,12 @@ private:
             double y_dist = std::abs(r * sin_a);
             bin_depth[bin_idx] = static_cast<float>(y_dist);
 
-            // Protrusion obstacle closer to robot than nominal wall
-            if (y_dist < (wall_nominal_dist_ - obstacle_threshold_)) {
+            // Protrusion obstacle closer to robot than nominal wall (e.g. switchboard, conduit)
+            if (y_dist < (d_nominal - obstacle_threshold_)) {
                 bin_is_obstacle[bin_idx] = true;
             }
-            // Cutout void further than nominal wall
-            else if (y_dist > (wall_nominal_dist_ + 0.12)) {
+            // Cutout void further than nominal wall (e.g. window recess or opening)
+            else if (y_dist > (d_nominal + 0.12)) {
                 bin_is_obstacle[bin_idx] = true;
             }
         }

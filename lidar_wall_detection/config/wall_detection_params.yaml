@@ -9,7 +9,7 @@ wall_detection_node:
     min_points: 5                # min points for valid PCA fit
     publish_rate: 10.0           # Hz
     target_distance: 0.77        # m
-    dist_tolerance: 0.1          # m
+    dist_tolerance: 0.18         # m
     angle_tolerance: 0.03        # rad
     lidar_offset_x: 0.195        # m
     lidar_offset_y: -0.147       # m
