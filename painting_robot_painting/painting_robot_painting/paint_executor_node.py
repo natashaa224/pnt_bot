@@ -228,7 +228,8 @@ class PaintExecutorNode(Node):
 
         self._send_z(ZAxisCmd.Z_POSITION, target_mm,
                      self.get_parameter('z_travel_rpm').value)
-        self._set_spray(True)
+        initial_spray = self._spray_for_position(z_m)
+        self._set_spray(initial_spray)
         # self._set_wrist(WRIST_NEUTRAL_DEG)
 
     def _abort_stroke(self):
