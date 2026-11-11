@@ -120,11 +120,29 @@ class WallAlignHandler(StateHandler):
         # here because wall_detection keeps publishing "NOT DETECTED", so VALIDITY
         # is the right trigger, not the fsm_loop timeout. Placeholder for a future
         # no_wall_align in wall_motion — for now we just hold and let recovery run.
-        if wall_status is None or not getattr(wall_status, 'wall_valid', True):
-            self.node.get_logger().warn(
-                '[FSM] WALL_ALIGN — no valid wall to align to, reporting WALL_LOST')
-            self.node.report_fault('WALL_LOST')
+        if wall_status is None:
             return RobotState.WALL_ALIGN
+
+        # No valid wall to align to:
+        # If in a normal straight wall block ('align+paint' / 'follow'), the robot is traversing
+        # past a wall opening, window cutout or doorway. Dead-reckon across the opening and let
+        # paint_executor handle obstacle/cutout spray shutoff rather than tripping SAFETY_HOLD.
+        if not getattr(wall_status, 'wall_valid', True):
+            item_now = self.node.queue.current_item()
+            is_normal_align = (item_now is not None and getattr(item_now, 'label', '') in ('align+paint', 'follow'))
+            if is_normal_align:
+                self.node.get_logger().info(
+                    '[FSM] WALL_ALIGN — wall cutout/opening encountered. Dead-reckoning across opening.')
+                self.node.clear_fault('WALL_LOST')
+                if item_now and item_now.paints:
+                    context['_paint_caller'] = RobotState.WALL_ALIGN
+                    return RobotState.PAINT_EXECUTE
+                return RobotState.ITEM_COMPLETE
+            else:
+                self.node.get_logger().warn(
+                    '[FSM] WALL_ALIGN — no valid wall to align to, reporting WALL_LOST')
+                self.node.report_fault('WALL_LOST')
+                return RobotState.WALL_ALIGN
         self.node.clear_fault('WALL_LOST')
 
         # Mid-recipe alignment: after an external corner turn the robot is not yet
