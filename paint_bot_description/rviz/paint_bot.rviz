@@ -367,6 +367,97 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /wall_markers
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Visual Spray Plume (/visual_spray_plume)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visual_spray_plume
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Painted Wall Layer (/painted_wall_layer)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 10
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /painted_wall_layer
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Effective Spray Footprint (/effective_spray_footprint)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /effective_spray_footprint
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Paint Status Panel HUD (/paint_status_panel)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /paint_status_panel
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Paint Status Beacon (/paint_status_indicator)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /paint_status_indicator
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Detected Cutout Box (/detected_cutout_box)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /detected_cutout_box
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Detected Object Box (/detected_object_box)
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /detected_object_box
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:

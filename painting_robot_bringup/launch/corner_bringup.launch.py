@@ -318,6 +318,13 @@ def generate_launch_description():
         parameters=[{'use_sim_time': True}]
     )
 
+    paint_visualizer = Node(
+        package='painting_robot_painting',
+        executable='paint_visualizer_node',
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
+
     actuator_bridge = Node(
         package='painting_robot_painting',
         executable='actuator_bridge_node',
@@ -463,6 +470,7 @@ def generate_launch_description():
         # Painting
         paint_planner,
         paint_executor,
+        paint_visualizer,
         actuator_bridge,
 
         # Visualization

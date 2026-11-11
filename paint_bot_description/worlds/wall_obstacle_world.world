@@ -109,14 +109,28 @@
           </material>
         </visual>
 
-        <!-- Section B1: Wall from X = -1.4 to X = +2.2 (length = 3.6m, center = 0.40m) -->
-        <collision name="col_wall_b1">
-          <pose>0.40 -0.825 1.25 0 0 0</pose>
-          <geometry><box><size>3.60 0.15 2.50</size></box></geometry>
+        <!-- Section B1a: Wall from X = -1.4 to X = +1.25 (length = 2.65m, center = -0.075m) -->
+        <collision name="col_wall_b1a">
+          <pose>-0.075 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>2.65 0.15 2.50</size></box></geometry>
         </collision>
-        <visual name="vis_wall_b1">
-          <pose>0.40 -0.825 1.25 0 0 0</pose>
-          <geometry><box><size>3.60 0.15 2.50</size></box></geometry>
+        <visual name="vis_wall_b1a">
+          <pose>-0.075 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>2.65 0.15 2.50</size></box></geometry>
+          <material>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Section B1b: Wall after doorway from X = 2.15 to X = 2.20 (length = 0.05m) -->
+        <collision name="col_wall_b1b">
+          <pose>2.175 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>0.05 0.15 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_wall_b1b">
+          <pose>2.175 -0.825 1.25 0 0 0</pose>
+          <geometry><box><size>0.05 0.15 2.50</size></box></geometry>
           <material>
             <ambient>0.82 0.82 0.82 1.0</ambient>
             <diffuse>0.85 0.85 0.85 1.0</diffuse>
@@ -177,45 +191,146 @@
         </visual>
 
         <!-- =============================================================== -->
-        <!-- WALL SURFACE OBSTACLE 1: Junction / Control Box (at X = 0.0 m)  -->
-        <!-- Center: X = 0.0, Y = -0.675 (protrudes 0.15m), Z = 0.85 m       -->
+        <!-- WALL SURFACE OBSTACLES: Realistic Configurable Wall Elements    -->
+        <!-- Baseline wall inner surface is at Y = -0.750 m                  -->
         <!-- =============================================================== -->
-        <collision name="col_obs1_junction_box">
-          <pose>0.0 -0.675 0.85 0 0 0</pose>
-          <geometry><box><size>0.32 0.15 0.38</size></box></geometry>
+
+        <!-- OBSTACLE 1: Switchboard (Test 2)                                 -->
+        <!-- Protruding 0.04 m from baseline (faces at Y = -0.710 m)          -->
+        <!-- Width: 0.15 m, Height: 0.15 m, Center Z: 0.85 m                  -->
+        <collision name="col_switchboard_1">
+          <pose>-0.70 -0.730 0.85 0 0 0</pose>
+          <geometry><box><size>0.15 0.04 0.15</size></box></geometry>
         </collision>
-        <visual name="vis_obs1_junction_box">
-          <pose>0.0 -0.675 0.85 0 0 0</pose>
-          <geometry><box><size>0.32 0.15 0.38</size></box></geometry>
+        <visual name="vis_switchboard_1_body">
+          <pose>-0.70 -0.730 0.85 0 0 0</pose>
+          <geometry><box><size>0.15 0.04 0.15</size></box></geometry>
           <material>
-            <ambient>0.2 0.3 0.45 1.0</ambient>
-            <diffuse>0.25 0.38 0.58 1.0</diffuse>
+            <ambient>0.92 0.90 0.85 1.0</ambient>
+            <diffuse>0.95 0.93 0.88 1.0</diffuse>
           </material>
         </visual>
-        <!-- Box handle / indicator plate -->
-        <visual name="vis_obs1_plate">
-          <pose>0.0 -0.595 0.85 0 0 0</pose>
-          <geometry><box><size>0.12 0.01 0.12</size></box></geometry>
+        <visual name="vis_switchboard_1_switches">
+          <pose>-0.70 -0.708 0.85 0 0 0</pose>
+          <geometry><box><size>0.08 0.005 0.04</size></box></geometry>
           <material>
-            <ambient>0.9 0.7 0.1 1.0</ambient>
-            <diffuse>0.95 0.75 0.1 1.0</diffuse>
+            <ambient>0.15 0.15 0.15 1.0</ambient>
+            <diffuse>0.20 0.20 0.20 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- OBSTACLE 2: Shallow Wall-Mounted Electrical Box (Junction Box)  -->
+        <!-- Protruding 0.06 m from baseline (faces at Y = -0.690 m)          -->
+        <!-- Width: 0.25 m, Height: 0.22 m, Center Z: 0.95 m                  -->
+        <collision name="col_electrical_box">
+          <pose>0.00 -0.720 0.95 0 0 0</pose>
+          <geometry><box><size>0.25 0.06 0.22</size></box></geometry>
+        </collision>
+        <visual name="vis_electrical_box_body">
+          <pose>0.00 -0.720 0.95 0 0 0</pose>
+          <geometry><box><size>0.25 0.06 0.22</size></box></geometry>
+          <material>
+            <ambient>0.28 0.35 0.42 1.0</ambient>
+            <diffuse>0.35 0.45 0.55 1.0</diffuse>
+          </material>
+        </visual>
+        <visual name="vis_electrical_box_badge">
+          <pose>0.00 -0.688 0.95 0 0 0</pose>
+          <geometry><box><size>0.09 0.005 0.06</size></box></geometry>
+          <material>
+            <ambient>0.95 0.75 0.10 1.0</ambient>
+            <diffuse>0.98 0.80 0.12 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- OBSTACLE 3: Minor Wall Protrusion (Test 3)                       -->
+        <!-- Shallow surface projection: 0.035 m (3.5 cm)                     -->
+        <!-- Width: 0.10 m, Height: 0.10 m, Center Z: 0.65 m                  -->
+        <collision name="col_minor_protrusion">
+          <pose>0.60 -0.7325 0.65 0 0 0</pose>
+          <geometry><box><size>0.10 0.035 0.10</size></box></geometry>
+        </collision>
+        <visual name="vis_minor_protrusion">
+          <pose>0.60 -0.7325 0.65 0 0 0</pose>
+          <geometry><box><size>0.10 0.035 0.10</size></box></geometry>
+          <material>
+            <ambient>0.65 0.40 0.20 1.0</ambient>
+            <diffuse>0.75 0.48 0.25 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- OBSTACLE 4: Vertical Conduit Pipe (at X = 1.0 m)                -->
+        <!-- Protruding 0.08 m from wall                                      -->
+        <collision name="col_obs2_conduit">
+          <pose>1.00 -0.710 1.25 0 0 0</pose>
+          <geometry><box><size>0.08 0.08 2.50</size></box></geometry>
+        </collision>
+        <visual name="vis_obs2_conduit">
+          <pose>1.00 -0.710 1.25 0 0 0</pose>
+          <geometry><cylinder><radius>0.04</radius><length>2.50</length></cylinder></geometry>
+          <material>
+            <ambient>0.85 0.45 0.1 1.0</ambient>
+            <diffuse>0.90 0.50 0.12 1.0</diffuse>
           </material>
         </visual>
 
         <!-- =============================================================== -->
-        <!-- WALL SURFACE OBSTACLE 2: Vertical Conduit Pipe (at X = 1.6 m)   -->
-        <!-- Runs from floor to ceiling, protruding 0.12 m                   -->
+        <!-- DOORWAY OPENING: X = 1.50 m (width: 0.90 m, Z: 0.0 to 2.10 m)   -->
+        <!-- Section above Doorway Lintel: Z = 2.10 to 2.50 m                 -->
         <!-- =============================================================== -->
-        <collision name="col_obs2_conduit">
-          <pose>1.60 -0.69 1.25 0 0 0</pose>
-          <geometry><box><size>0.10 0.12 2.50</size></box></geometry>
+        <collision name="col_doorway_lintel">
+          <pose>1.70 -0.825 2.30 0 0 0</pose>
+          <geometry><box><size>0.90 0.15 0.40</size></box></geometry>
         </collision>
-        <visual name="vis_obs2_conduit">
-          <pose>1.60 -0.69 1.25 0 0 0</pose>
-          <geometry><cylinder><radius>0.05</radius><length>2.50</length></cylinder></geometry>
+        <visual name="vis_doorway_lintel">
+          <pose>1.70 -0.825 2.30 0 0 0</pose>
+          <geometry><box><size>0.90 0.15 0.40</size></box></geometry>
           <material>
-            <ambient>0.85 0.45 0.1 1.0</ambient>
-            <diffuse>0.90 0.50 0.12 1.0</diffuse>
+            <ambient>0.82 0.82 0.82 1.0</ambient>
+            <diffuse>0.85 0.85 0.85 1.0</diffuse>
+          </material>
+        </visual>
+        <!-- Door Frame outline -->
+        <visual name="vis_door_frame_left">
+          <pose>1.24 -0.745 1.05 0 0 0</pose>
+          <geometry><box><size>0.03 0.02 2.10</size></box></geometry>
+          <material><ambient>0.3 0.2 0.1 1</ambient><diffuse>0.4 0.25 0.15 1</diffuse></material>
+        </visual>
+        <visual name="vis_door_frame_right">
+          <pose>2.16 -0.745 1.05 0 0 0</pose>
+          <geometry><box><size>0.03 0.02 2.10</size></box></geometry>
+          <material><ambient>0.3 0.2 0.1 1</ambient><diffuse>0.4 0.25 0.15 1</diffuse></material>
+        </visual>
+
+        <!-- =============================================================== -->
+        <!-- MULTI-OBSTACLE SECTION (Test 4): Window + Multiple Switchboards  -->
+        <!-- Centered around X = 3.5 m                                        -->
+        <!-- =============================================================== -->
+        <!-- Switchboard below Window 2: X = 2.60 m, Z = 0.25 m               -->
+        <collision name="col_multi_switchboard_1">
+          <pose>2.60 -0.730 0.25 0 0 0</pose>
+          <geometry><box><size>0.15 0.04 0.15</size></box></geometry>
+        </collision>
+        <visual name="vis_multi_switchboard_1">
+          <pose>2.60 -0.730 0.25 0 0 0</pose>
+          <geometry><box><size>0.15 0.04 0.15</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1.0</ambient>
+            <diffuse>0.98 0.98 0.98 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- Switchboard on Wall Column: X = 3.50 m, Z = 0.90 m               -->
+        <collision name="col_multi_switchboard_2">
+          <pose>3.50 -0.615 0.90 0 0 0</pose>
+          <geometry><box><size>0.14 0.04 0.14</size></box></geometry>
+        </collision>
+        <visual name="vis_multi_switchboard_2">
+          <pose>3.50 -0.615 0.90 0 0 0</pose>
+          <geometry><box><size>0.14 0.04 0.14</size></box></geometry>
+          <material>
+            <ambient>0.95 0.70 0.20 1.0</ambient>
+            <diffuse>0.98 0.75 0.22 1.0</diffuse>
           </material>
         </visual>
 

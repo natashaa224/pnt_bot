@@ -25,6 +25,7 @@ setup(
             'paint_planner_node   = painting_robot_painting.paint_planner_node:main',
             'paint_executor_node  = painting_robot_painting.paint_executor_node:main',
             'actuator_bridge_node = painting_robot_painting.actuator_bridge_node:main',
+            'paint_visualizer_node = painting_robot_painting.paint_visualizer_node:main',
         ],
     },
 )
